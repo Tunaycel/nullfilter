@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment & cryptographic keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Logs & OS artifacts
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+coverage/
+.idea/
+.vscode/
