@@ -1,0 +1,19 @@
+{
+  "name": "@nullfilter/client",
+  "version": "1.0.0",
+  "description": "Browser WebCrypto SDK for cryptographic origin attestation, Canvas/WebGL hardware fingerprinting, and RTT probing",
+  "author": "Hüseyin Tunay Çelik <h.tunaycelik@gmail.com>",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@nullfilter/core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\""
+  }
+}
