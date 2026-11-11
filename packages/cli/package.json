@@ -1,0 +1,24 @@
+{
+  "name": "@nullfilter/cli",
+  "version": "1.0.0",
+  "description": "Zero-dependency CLI for RSA-2048 key provisioning, cryptographic self-tests, and endpoint AiTM vulnerability auditing",
+  "author": "Hüseyin Tunay Çelik <h.tunaycelik@gmail.com>",
+  "license": "MIT",
+  "bin": {
+    "nullfilter": "./dist/index.js",
+    "originlock": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@nullfilter/core": "workspace:*",
+    "@nullfilter/server": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\""
+  }
+}
