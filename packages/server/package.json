@@ -1,0 +1,19 @@
+{
+  "name": "@nullfilter/server",
+  "version": "1.0.0",
+  "description": "Server-side RSA-OAEP origin attestation verifier, canary honeypot session poisoner, SIEM CEF dispatcher, and HTTP middlewares",
+  "author": "Hüseyin Tunay Çelik <h.tunaycelik@gmail.com>",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@nullfilter/core": "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\""
+  }
+}
