@@ -805,7 +805,7 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
 
           var data = await res.json();
           if (data.nextNonce && window.__OriginLock && typeof window.__OriginLock.setNonce === 'function') {
-            window.__OriginLock.setNonce(data.nextNonce);
+            window.__OriginLock.setNonce(data.nextNonce, data.nextChallengeProof);
             var nonceEl = document.getElementById('probeNonceText');
             if (nonceEl) nonceEl.textContent = data.nextNonce;
           }

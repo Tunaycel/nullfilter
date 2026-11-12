@@ -219,6 +219,44 @@ export function verifyNonce(
 }
 
 /**
+ * Derives a deterministic 16-hex-character Polymorphic Execution Proof bound to a specific nonce.
+ * This proof is split across randomized arithmetic/XOR stages inside the polymorphic JS closure
+ * so a reverse-proxy cannot forge valid tokens merely by scraping `publicKeyPem` and `nonce`.
+ */
+export function computeChallengeProof(nonce: string, hmacSecret: string): string {
+  return crypto
+    .createHmac('sha256', hmacSecret)
+    .update(`polymorphic-execution-proof:v2:${nonce}`)
+    .digest('hex')
+    .slice(0, 16);
+}
+
+/**
+ * Verifies a client's reconstructed `challengeProof` in constant time using `crypto.timingSafeEqual`.
+ */
+export function verifyChallengeProof(
+  nonce: string,
+  providedProof: string | undefined,
+  hmacSecret: string
+): boolean {
+  if (!providedProof || typeof providedProof !== 'string' || providedProof.length !== 16) {
+    return false;
+  }
+  if (!HEX_REGEX.test(providedProof)) {
+    return false;
+  }
+
+  const expectedProof = computeChallengeProof(nonce, hmacSecret);
+  const bufA = Buffer.from(providedProof.toLowerCase(), 'hex');
+  const bufB = Buffer.from(expectedProof.toLowerCase(), 'hex');
+
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
+/**
  * Decrypts a Base64-encoded telemetry token using the server's RSA-2048 Private Key.
  * Supports both Direct RSA-OAEP (<=190-byte plaintext) and Hybrid RSA-OAEP-2048 + AES-256-GCM
  * binary envelope ciphertexts for full-length DOM telemetry payloads.
@@ -308,6 +346,8 @@ export function decryptTelemetryPayload(
     webglRenderer: typeof parsed.webglRenderer === 'string' ? parsed.webglRenderer : undefined,
     domIntegrityValid:
       typeof parsed.domIntegrityValid === 'boolean' ? parsed.domIntegrityValid : true,
+    challengeProof:
+      typeof parsed.challengeProof === 'string' ? parsed.challengeProof : undefined,
   };
 }
 

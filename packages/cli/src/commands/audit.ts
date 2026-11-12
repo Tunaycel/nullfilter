@@ -15,11 +15,15 @@ export interface SimulationStepOutcome {
 }
 
 /**
- * Programmatically executes the 4-stage cryptographic verification & AiTM simulation suite:
+ * Programmatically executes the 8-stage cryptographic verification, AiTM simulation & Red-Team anti-bypass suite:
  *   Test 1: Legitimate origin (https://quellcloud.com -> https://quellcloud.com) => ALLOW
  *   Test 2: Evilginx AiTM origin (https://quellcl0ud.com -> https://quellcloud.com) => BLOCK_AITM_ORIGIN_MISMATCH + Honeypot Cookie
  *   Test 3: Replay attack (reusing the same encrypted token twice) => BLOCK_INVALID_NONCE
  *   Test 4: Tampered ciphertext (corrupting bytes in transit) => BLOCK_TAMPERED_CIPHERTEXT
+ *   Test 5: Red-Team Bypass #1 — Proxy Server-Side Token-Oracle Forgery (missing/forged challengeProof) => BLOCK_FORGED_TOKEN_ORACLE
+ *   Test 6: Red-Team Bypass #2 — Pre-Script DOM/WebCrypto Monkey-Patch (domIntegrityValid: false) => BLOCK_DOM_INTEGRITY_VIOLATION
+ *   Test 7: Red-Team Bypass #3 — Headless Browser / Puppeteer Token Farm (SwiftShader / webdriver) => BLOCK_HEADLESS_AUTOMATION
+ *   Test 8: Red-Team Bypass #4 — Cross-Browser Token Relay (encrypted UA != HTTP UA) => BLOCK_CONTEXT_BINDING_MISMATCH
  */
 export async function runSimulateSuite(silentBanner = false): Promise<{
   allPassed: boolean;
@@ -37,9 +41,13 @@ export async function runSimulateSuite(silentBanner = false): Promise<{
     maxTokenAgeMs: 25_000,
     maxAllowedRttMs: 1_500,
     enableHoneypotPoisoning: true,
+    enforceChallengeProof: true,
+    blockHeadlessAutomation: true,
+    enforceUserAgentBinding: true,
   });
 
   const outcomes: SimulationStepOutcome[] = [];
+  const standardBrowserUa = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0';
 
   // Test 1: Legitimate Origin
   const challenge1 = shield.issueChallenge('198.51.100.10');
@@ -49,7 +57,7 @@ export async function runSimulateSuite(silentBanner = false): Promise<{
     port: '443',
     pathname: '/login',
     referrer: 'https://quellcloud.com/',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0',
+    userAgent: standardBrowserUa,
     webdriver: false,
     canvasHash: '89f1c3a04b2d9e17',
     webglRenderer: 'ANGLE (NVIDIA GeForce RTX 4080 Direct3D11)',
@@ -57,6 +65,7 @@ export async function runSimulateSuite(silentBanner = false): Promise<{
     rttMs: 42,
     clientTimestamp: Date.now(),
     nonce: challenge1.nonce,
+    challengeProof: challenge1.challengeProof,
   };
 
   const validToken = encryptTelemetryNode(legitimatePayload, publicKeyPem);
@@ -84,7 +93,7 @@ export async function runSimulateSuite(silentBanner = false): Promise<{
     port: '443',
     pathname: '/login',
     referrer: 'https://quellcl0ud.com/',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0',
+    userAgent: standardBrowserUa,
     webdriver: false,
     canvasHash: '89f1c3a04b2d9e17',
     webglRenderer: 'ANGLE (NVIDIA GeForce RTX 4080 Direct3D11)',
@@ -92,6 +101,7 @@ export async function runSimulateSuite(silentBanner = false): Promise<{
     rttMs: 185,
     clientTimestamp: Date.now(),
     nonce: challenge2.nonce,
+    challengeProof: challenge2.challengeProof,
   };
 
   const aitmToken = encryptTelemetryNode(aitmPayload, publicKeyPem);
@@ -159,6 +169,118 @@ export async function runSimulateSuite(silentBanner = false): Promise<{
     details: res4.reason,
   });
 
+  // Test 5: Red-Team Bypass #1 — Proxy Server-Side Token-Oracle Forgery
+  // Attacker scrapes publicKeyPem + nonce from HTML and encrypts a fake "https://quellcloud.com" payload on the proxy server without evaluating the polymorphic JS closure
+  const challenge5 = shield.issueChallenge('203.0.113.99');
+  const oracleForgedPayload: TelemetryPayload = {
+    hostname: 'quellcloud.com',
+    origin: 'https://quellcloud.com',
+    port: '443',
+    pathname: '/login',
+    referrer: 'https://quellcloud.com/',
+    userAgent: standardBrowserUa,
+    webdriver: false,
+    canvasHash: '89f1c3a04b2d9e17',
+    webglRenderer: 'ANGLE (NVIDIA GeForce RTX 4080 Direct3D11)',
+    domIntegrityValid: true,
+    rttMs: 28,
+    clientTimestamp: Date.now(),
+    nonce: challenge5.nonce,
+    challengeProof: '0000000000000000000000000000dead',
+  };
+  const oracleForgedToken = encryptTelemetryNode(oracleForgedPayload, publicKeyPem);
+  const res5 = await shield.verifyRequest({
+    token: oracleForgedToken,
+    clientIp: '203.0.113.99',
+    userAgent: standardBrowserUa,
+    username: 'h.tunay@quellcloud.com',
+    silenceConsoleAlert: true,
+  });
+
+  outcomes.push({
+    name: 'Test 5: Red-Team Bypass #1 — Server-Side Token-Oracle Forgery',
+    passed: res5.allowed === false && res5.status === 'BLOCK_FORGED_TOKEN_ORACLE',
+    expectedStatus: 'BLOCK_FORGED_TOKEN_ORACLE',
+    actualStatus: res5.status,
+    details: res5.reason,
+  });
+
+  // Test 6: Red-Team Bypass #2 — Pre-Script DOM / WebCrypto / toString Monkey-Patch
+  const challenge6 = shield.issueChallenge('203.0.113.100');
+  const hookedDomPayload: TelemetryPayload = {
+    ...legitimatePayload,
+    nonce: challenge6.nonce,
+    challengeProof: challenge6.challengeProof,
+    domIntegrityValid: false,
+  };
+  const hookedDomToken = encryptTelemetryNode(hookedDomPayload, publicKeyPem);
+  const res6 = await shield.verifyRequest({
+    token: hookedDomToken,
+    clientIp: '203.0.113.100',
+    userAgent: standardBrowserUa,
+    username: 'h.tunay@quellcloud.com',
+    silenceConsoleAlert: true,
+  });
+
+  outcomes.push({
+    name: 'Test 6: Red-Team Bypass #2 — Pre-Script WebCrypto/toString Hook',
+    passed: res6.allowed === false && res6.status === 'BLOCK_DOM_INTEGRITY_VIOLATION',
+    expectedStatus: 'BLOCK_DOM_INTEGRITY_VIOLATION',
+    actualStatus: res6.status,
+    details: res6.reason,
+  });
+
+  // Test 7: Red-Team Bypass #3 — Headless Browser / Puppeteer Token Farm
+  const challenge7 = shield.issueChallenge('203.0.113.101');
+  const headlessPayload: TelemetryPayload = {
+    ...legitimatePayload,
+    nonce: challenge7.nonce,
+    challengeProof: challenge7.challengeProof,
+    webdriver: false,
+    webglRenderer: 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)))',
+  };
+  const headlessToken = encryptTelemetryNode(headlessPayload, publicKeyPem);
+  const res7 = await shield.verifyRequest({
+    token: headlessToken,
+    clientIp: '203.0.113.101',
+    userAgent: standardBrowserUa,
+    username: 'h.tunay@quellcloud.com',
+    silenceConsoleAlert: true,
+  });
+
+  outcomes.push({
+    name: 'Test 7: Red-Team Bypass #3 — Headless Puppeteer / SwiftShader Farm',
+    passed: res7.allowed === false && res7.status === 'BLOCK_HEADLESS_AUTOMATION',
+    expectedStatus: 'BLOCK_HEADLESS_AUTOMATION',
+    actualStatus: res7.status,
+    details: res7.reason,
+  });
+
+  // Test 8: Red-Team Bypass #4 — Cross-Browser Token Relay Attack
+  const challenge8 = shield.issueChallenge('203.0.113.102');
+  const relayedTokenPayload: TelemetryPayload = {
+    ...legitimatePayload,
+    nonce: challenge8.nonce,
+    challengeProof: challenge8.challengeProof,
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:132.0) Gecko/20100101 Firefox/132.0',
+  };
+  const relayedBrowserToken = encryptTelemetryNode(relayedTokenPayload, publicKeyPem);
+  const res8 = await shield.verifyRequest({
+    token: relayedBrowserToken,
+    clientIp: '203.0.113.102',
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_7) AppleWebKit/605.1.15 Safari/605.1.15',
+    username: 'h.tunay@quellcloud.com',
+    silenceConsoleAlert: true,
+  });
+
+  outcomes.push({
+    name: 'Test 8: Red-Team Bypass #4 — Cross-Browser Token Relay Attack',
+    passed: res8.allowed === false && res8.status === 'BLOCK_CONTEXT_BINDING_MISMATCH',
+    expectedStatus: 'BLOCK_CONTEXT_BINDING_MISMATCH',
+    actualStatus: res8.status,
+    details: res8.reason,
+  });
+
   const allPassed = outcomes.every((o) => o.passed);
 
   if (!silentBanner) {
@@ -172,7 +294,7 @@ export async function runSimulateSuite(silentBanner = false): Promise<{
       `\n${bold}${cyan}┌──────────────────────────────────────────────────────────────────────────────┐${reset}`
     );
     console.log(
-      `${bold}${cyan}│  NULLFILTER / ORIGINLOCK CRYPTOGRAPHIC SELF-TEST & AiTM SIMULATION SUITE     │${reset}`
+      `${bold}${cyan}│  NULLFILTER / ORIGINLOCK CRYPTOGRAPHIC & RED-TEAM ANTI-BYPASS SUITE (v2.0)  │${reset}`
     );
     console.log(
       `${bold}${cyan}└──────────────────────────────────────────────────────────────────────────────┘${reset}`
@@ -188,7 +310,7 @@ export async function runSimulateSuite(silentBanner = false): Promise<{
     console.log(
       `\n  ${bold}Overall Suite Result:${reset} ${
         allPassed
-          ? `${green}ALL 4 CRYPTOGRAPHIC & AiTM DEFENSES VERIFIED (100%)${reset}`
+          ? `${green}ALL 8 CRYPTOGRAPHIC & RED-TEAM DEFENSES VERIFIED (100%)${reset}`
           : `${red}FAILURE DETECTED${reset}`
       }\n`
     );

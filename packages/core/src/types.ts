@@ -12,6 +12,7 @@ export interface TelemetryPayload {
   nonce: string;
   webglRenderer?: string;
   domIntegrityValid?: boolean;
+  challengeProof?: string;
 }
 
 export type ThreatVerdictStatus =
@@ -22,7 +23,10 @@ export type ThreatVerdictStatus =
   | 'BLOCK_TAMPERED_CIPHERTEXT'
   | 'BLOCK_MISSING_TOKEN'
   | 'BLOCK_ANOMALOUS_RTT'
-  | 'BLOCK_DOM_INTEGRITY_VIOLATION';
+  | 'BLOCK_DOM_INTEGRITY_VIOLATION'
+  | 'BLOCK_FORGED_TOKEN_ORACLE'
+  | 'BLOCK_HEADLESS_AUTOMATION'
+  | 'BLOCK_CONTEXT_BINDING_MISMATCH';
 
 export interface ThreatDetails {
   expectedOrigins: string[];
@@ -64,6 +68,9 @@ export interface OriginLockConfig {
   maxAllowedRttMs?: number;
   enableHoneypotPoisoning?: boolean;
   maxNonceCacheSize?: number;
+  enforceChallengeProof?: boolean;
+  blockHeadlessAutomation?: boolean;
+  enforceUserAgentBinding?: boolean;
   webhookConfig?: WebhookConfig;
   onThreatDetected?: (result: VerificationResult) => void | Promise<void>;
 }

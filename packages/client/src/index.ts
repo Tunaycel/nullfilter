@@ -9,6 +9,7 @@ import {
 export interface OriginLockClientOptions {
   publicKeyPem: string;
   nonce: string;
+  challengeProof?: string;
   pingUrl?: string;
 }
 
@@ -62,6 +63,7 @@ export async function createOriginLockToken(options: OriginLockClientOptions): P
     rttMs,
     clientTimestamp: Date.now(),
     nonce: options.nonce,
+    challengeProof: options.challengeProof,
   };
 
   const spkiBuffer = pemToSpkiArrayBuffer(options.publicKeyPem);
