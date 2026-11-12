@@ -532,6 +532,14 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
             />
           </div>
 
+          <div class="form-group">
+            <label for="shield_mode">Server Defense Mode (Live Comparison)</label>
+            <select id="shield_mode" name="_shield_mode" class="form-control">
+              <option value="ON" selected>🛡️ NullFilter Shield: ON (RSA-OAEP DOM Attestation + Honeypot)</option>
+              <option value="OFF">🔓 NullFilter Shield: OFF (Standard Server — Header Check Only)</option>
+            </select>
+          </div>
+
           <input type="hidden" name="_originlock_token" id="originlockTokenInput" value="" />
 
           <button type="submit" class="btn-submit" id="submitBtn">
@@ -686,6 +694,24 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
         var p = v.decryptedPayload || {};
         var d = v.threatDetails || {};
 
+        if (evt.shieldMode === 'OFF') {
+          card.className = 'event-card aitm';
+          card.innerHTML =
+            '<div class="event-top">' +
+              '<span class="verdict-pill aitm">⚠️ SHIELD OFF — STANDARD SERVER COMPROMISED</span>' +
+              '<span style="color: var(--text-muted);">' + escapeHtml(evt.timestamp || '') + '</span>' +
+            '</div>' +
+            '<div style="color:#fbbf24; margin-bottom:6px;">' + escapeHtml(v.reason) + '</div>' +
+            '<div class="event-grid">' +
+              '<div><strong>Spoofed HTTP Origin:</strong> <span style="color:#fbbf24;">' + escapeHtml(evt.observedHttpOrigin || 'N/A') + ' (Trusted Blindly!)</span></div>' +
+              '<div><strong>DOM Crypto Check:</strong> <span style="color:#ef4444;">BYPASSED (Shield Disabled)</span></div>' +
+              '<div><strong>Targeted User:</strong> ' + escapeHtml(evt.username || 'N/A') + '</div>' +
+              '<div><strong>Result:</strong> <span style="color:#ef4444; font-weight:700;">REAL SESSION HIJACKED BY PROXY</span></div>' +
+            '</div>';
+          feed.prepend(card);
+          return;
+        }
+
         if (v.allowed) {
           allowCount++;
           document.getElementById('metricAllowCount').textContent = String(allowCount);
@@ -765,6 +791,7 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
           bodyData.set('username', document.getElementById('username').value);
           bodyData.set('password', document.getElementById('password').value);
           bodyData.set('totp_code', document.getElementById('totp_code').value);
+          bodyData.set('_shield_mode', document.getElementById('shield_mode').value);
           bodyData.set('_originlock_token', token);
 
           var res = await fetch('/api/login', {
@@ -788,6 +815,11 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
             banner.innerHTML =
               '<strong>✔ AUTHENTICATED TO QUELLCLOUD VAULT</strong><br/>' +
               'Origin verified via RSA-OAEP-2048 (' + escapeHtml(data.verdict.decryptedPayload.origin) + '). Session cookie issued.';
+          } else if (data.status === 'COMPROMISED_UNPROTECTED') {
+            banner.className = 'response-banner trapped';
+            banner.innerHTML =
+              '<strong>⚠️ ACCOUNT COMPROMISED (SHIELD WAS OFF!)</strong><br/>' +
+              escapeHtml(data.message);
           } else {
             banner.className = 'response-banner trapped';
             banner.innerHTML =
