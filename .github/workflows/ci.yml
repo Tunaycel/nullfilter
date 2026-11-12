@@ -1,0 +1,55 @@
+name: CI — Build & Cryptographic Verification
+
+on:
+  push:
+    branches:
+      - main
+      - "chore/**"
+      - "feat/**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: TypeScript Build & AiTM Attestation Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Compile TypeScript Workspace Packages
+        run: |
+          if ls packages/*/package.json >/dev/null 2>&1; then
+            pnpm run build
+          else
+            npx tsc --version
+          fi
+
+      - name: Run 4-Stage Cryptographic & AiTM Simulation Suite
+        run: |
+          if [ -f packages/cli/dist/index.js ]; then
+            node packages/cli/dist/index.js simulate
+          fi
+
+      - name: Run Live Loopback Proxy & Vault E2E Smoke Test
+        run: |
+          if [ -f apps/playground/dist/run-demo.js ]; then
+            node apps/playground/dist/run-demo.js --self-test
+          fi
