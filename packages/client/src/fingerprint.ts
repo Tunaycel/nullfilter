@@ -92,7 +92,8 @@ export function getWebglRenderer(): string {
 }
 
 /**
- * Verifies that `window.crypto.subtle.encrypt` has not been monkey-patched by an injected proxy script.
+ * Verifies that `Function.prototype.toString`, `window.crypto.subtle.encrypt`, `JSON.stringify`,
+ * and `TextEncoder.prototype.encode` have not been monkey-patched by an injected proxy script.
  */
 export function verifyDomCryptoIntegrity(): boolean {
   if (typeof window === 'undefined' || !window.crypto || !window.crypto.subtle) {
@@ -100,8 +101,26 @@ export function verifyDomCryptoIntegrity(): boolean {
   }
 
   try {
-    const fnSource = Function.prototype.toString.call(window.crypto.subtle.encrypt);
-    return fnSource.includes('[native code]');
+    const fnToString = Function.prototype.toString;
+    const isGenuineNativeMethod = (fn: unknown, expectedName: string): boolean => {
+      if (typeof fn !== 'function') return false;
+      if (Object.prototype.hasOwnProperty.call(fn, 'prototype')) return false;
+      const fnName = String(fn.name || '');
+      if (fnName.startsWith('bound ') || fnName !== expectedName) return false;
+      return fnToString.call(fn).includes('[native code]');
+    };
+
+    if (!isGenuineNativeMethod(fnToString, 'toString')) return false;
+    if (!isGenuineNativeMethod(window.crypto.subtle.encrypt, 'encrypt')) return false;
+    if (!isGenuineNativeMethod(JSON.stringify, 'stringify')) return false;
+    if (
+      typeof TextEncoder !== 'undefined' &&
+      !isGenuineNativeMethod(TextEncoder.prototype.encode, 'encode')
+    ) {
+      return false;
+    }
+
+    return true;
   } catch {
     return false;
   }

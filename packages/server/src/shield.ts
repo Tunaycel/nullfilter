@@ -1,10 +1,13 @@
 import {
+  computeChallengeProof,
   decryptTelemetryPayload,
   generateNonce,
   generatePolymorphicClientScript,
   OriginLockConfig,
   TelemetryPayload,
+  ThreatVerdictStatus,
   VerificationResult,
+  verifyChallengeProof,
   verifyNonce,
 } from '@nullfilter/core';
 import { generatePoisonedSession } from './honeypot';
@@ -21,8 +24,12 @@ export interface VerifyRequestParams {
 
 export interface IssuedChallenge {
   nonce: string;
+  challengeProof: string;
   script: string;
 }
+
+const HEADLESS_GPU_OR_UA_REGEX =
+  /swiftshader|llvmpipe|mesa offscreen|virtualbox|headlesschrome|phantomjs|puppeteer|playwright|selenium/i;
 
 function normalizeOrigin(origin: string): string {
   return origin.trim().toLowerCase().replace(/\/+$/, '');
@@ -41,7 +48,13 @@ export class OriginLockShield {
   private readonly config: Required<
     Pick<
       OriginLockConfig,
-      'maxTokenAgeMs' | 'maxAllowedRttMs' | 'enableHoneypotPoisoning' | 'maxNonceCacheSize'
+      | 'maxTokenAgeMs'
+      | 'maxAllowedRttMs'
+      | 'enableHoneypotPoisoning'
+      | 'maxNonceCacheSize'
+      | 'enforceChallengeProof'
+      | 'blockHeadlessAutomation'
+      | 'enforceUserAgentBinding'
     >
   > &
     OriginLockConfig;
@@ -64,6 +77,9 @@ export class OriginLockShield {
       maxAllowedRttMs: config.maxAllowedRttMs ?? 1_500,
       enableHoneypotPoisoning: config.enableHoneypotPoisoning ?? true,
       maxNonceCacheSize: config.maxNonceCacheSize ?? 50_000,
+      enforceChallengeProof: config.enforceChallengeProof ?? true,
+      blockHeadlessAutomation: config.blockHeadlessAutomation ?? true,
+      enforceUserAgentBinding: config.enforceUserAgentBinding ?? true,
     };
 
     this.usedNoncesSet = new Set<string>();
@@ -76,20 +92,78 @@ export class OriginLockShield {
   }
 
   /**
-   * Issues a fresh HMAC-signed nonce and a uniquely mutated polymorphic client probe script.
+   * Issues a fresh HMAC-signed nonce, a split polymorphic challenge proof, and a uniquely mutated client probe script.
    */
   public issueChallenge(clientIp?: string, pingEndpoint = '/api/ping'): IssuedChallenge {
     const nonce = generateNonce(this.config.hmacSecret, clientIp);
+    const challengeProof = computeChallengeProof(nonce, this.config.hmacSecret);
     const script = generatePolymorphicClientScript(
       this.config.publicKeyPem,
       nonce,
-      pingEndpoint
+      pingEndpoint,
+      challengeProof
     );
-    return { nonce, script };
+    return { nonce, challengeProof, script };
+  }
+
+  private async finalizeHighRiskBlock(
+    status: ThreatVerdictStatus,
+    reason: string,
+    payload: TelemetryPayload,
+    params: VerifyRequestParams,
+    nowIso: string,
+    riskScore: number
+  ): Promise<VerificationResult> {
+    let poisonedCookieHeader: string | undefined;
+    let canaryId: string | undefined;
+
+    if (this.config.enableHoneypotPoisoning) {
+      const artifact = generatePoisonedSession(
+        payload.origin || payload.hostname || 'unknown-origin',
+        params.username ?? 'targeted-user',
+        this.config.hmacSecret
+      );
+      poisonedCookieHeader = artifact.setCookieHeader;
+      canaryId = artifact.canaryId;
+    }
+
+    const result: VerificationResult = {
+      allowed: false,
+      status,
+      reason,
+      decryptedPayload: payload,
+      threatDetails: {
+        expectedOrigins: this.config.allowedOrigins,
+        actualClientOrigin: payload.origin,
+        actualClientHostname: payload.hostname,
+        proxyExitIp: params.clientIp,
+        forwardedFor: params.forwardedFor,
+        userAgent: params.userAgent || payload.userAgent,
+        rttDeltaMs: payload.rttMs,
+        timestamp: nowIso,
+        poisonedCookieHeader,
+        canaryId,
+        riskScore,
+      },
+    };
+
+    result.threatDetails!.cefRecord = formatCefAlert(result);
+
+    if (!params.silenceConsoleAlert) {
+      this.printTerminalSecurityAlert(result, params.username);
+    }
+
+    if (this.config.onThreatDetected) {
+      await Promise.resolve(this.config.onThreatDetected(result)).catch(() => {});
+    }
+
+    void dispatchThreatWebhook(result, this.config.webhookConfig);
+
+    return result;
   }
 
   /**
-   * Executes the full multi-stage cryptographic origin verification pipeline.
+   * Executes the full multi-stage cryptographic origin & adversarial counter-bypass pipeline.
    */
   public async verifyRequest(params: VerifyRequestParams): Promise<VerificationResult> {
     const nowIso = new Date().toISOString();
@@ -165,22 +239,63 @@ export class OriginLockShield {
     }
 
     if (payload.domIntegrityValid === false) {
-      return {
-        allowed: false,
-        status: 'BLOCK_DOM_INTEGRITY_VIOLATION',
-        reason: 'Browser WebCrypto API prototype integrity check failed (monkey-patching detected).',
-        decryptedPayload: payload,
-        threatDetails: {
-          expectedOrigins: this.config.allowedOrigins,
-          actualClientOrigin: payload.origin,
-          actualClientHostname: payload.hostname,
-          proxyExitIp: params.clientIp,
-          forwardedFor: params.forwardedFor,
-          userAgent: params.userAgent,
-          timestamp: nowIso,
-          riskScore: 98,
-        },
-      };
+      return this.finalizeHighRiskBlock(
+        'BLOCK_DOM_INTEGRITY_VIOLATION',
+        'Browser WebCrypto / Function.prototype.toString / JSON.stringify integrity check failed (pre-script monkey-patching detected).',
+        payload,
+        params,
+        nowIso,
+        98
+      );
+    }
+
+    if (this.config.enforceChallengeProof) {
+      const proofValid = verifyChallengeProof(
+        payload.nonce,
+        payload.challengeProof,
+        this.config.hmacSecret
+      );
+      if (!proofValid) {
+        return this.finalizeHighRiskBlock(
+          'BLOCK_FORGED_TOKEN_ORACLE',
+          'Server-side token-oracle forgery detected! Payload lacked a valid polymorphic closure challengeProof for the issued nonce.',
+          payload,
+          params,
+          nowIso,
+          100
+        );
+      }
+    }
+
+    if (this.config.blockHeadlessAutomation) {
+      const isHeadlessGpuOrUa =
+        HEADLESS_GPU_OR_UA_REGEX.test(payload.webglRenderer || '') ||
+        HEADLESS_GPU_OR_UA_REGEX.test(payload.userAgent || '');
+      if (payload.webdriver === true || isHeadlessGpuOrUa) {
+        return this.finalizeHighRiskBlock(
+          'BLOCK_HEADLESS_AUTOMATION',
+          `Headless browser / automated token-harvesting farm detected (webdriver=${String(payload.webdriver)}, webglRenderer='${payload.webglRenderer}').`,
+          payload,
+          params,
+          nowIso,
+          96
+        );
+      }
+    }
+
+    if (this.config.enforceUserAgentBinding) {
+      const reqUa = (params.userAgent || '').trim();
+      const payloadUa = (payload.userAgent || '').trim();
+      if (reqUa.length > 0 && payloadUa.length > 0 && reqUa !== 'node' && reqUa !== payloadUa) {
+        return this.finalizeHighRiskBlock(
+          'BLOCK_CONTEXT_BINDING_MISMATCH',
+          `Cross-browser token relay detected! Encrypted telemetry User-Agent ('${payloadUa.slice(0, 48)}...') does not match HTTP request User-Agent ('${reqUa.slice(0, 48)}...').`,
+          payload,
+          params,
+          nowIso,
+          97
+        );
+      }
     }
 
     const actualHostNorm = normalizeHostname(payload.hostname);
@@ -190,52 +305,14 @@ export class OriginLockShield {
     const isOriginAllowed = this.normalizedAllowedOrigins.has(actualOriginNorm);
 
     if (!isHostnameAllowed || !isOriginAllowed) {
-      let poisonedCookieHeader: string | undefined;
-      let canaryId: string | undefined;
-
-      if (this.config.enableHoneypotPoisoning) {
-        const artifact = generatePoisonedSession(
-          payload.origin || payload.hostname,
-          params.username ?? 'targeted-user',
-          this.config.hmacSecret
-        );
-        poisonedCookieHeader = artifact.setCookieHeader;
-        canaryId = artifact.canaryId;
-      }
-
-      const result: VerificationResult = {
-        allowed: false,
-        status: 'BLOCK_AITM_ORIGIN_MISMATCH',
-        reason: `AiTM Reverse Proxy detected! Browser executed on '${payload.origin}' (hostname: '${payload.hostname}'), which violates allowed origins [${this.config.allowedOrigins.join(', ')}].`,
-        decryptedPayload: payload,
-        threatDetails: {
-          expectedOrigins: this.config.allowedOrigins,
-          actualClientOrigin: payload.origin,
-          actualClientHostname: payload.hostname,
-          proxyExitIp: params.clientIp,
-          forwardedFor: params.forwardedFor,
-          userAgent: params.userAgent || payload.userAgent,
-          rttDeltaMs: payload.rttMs,
-          timestamp: nowIso,
-          poisonedCookieHeader,
-          canaryId,
-          riskScore: 100,
-        },
-      };
-
-      result.threatDetails!.cefRecord = formatCefAlert(result);
-
-      if (!params.silenceConsoleAlert) {
-        this.printTerminalSecurityAlert(result, params.username);
-      }
-
-      if (this.config.onThreatDetected) {
-        await Promise.resolve(this.config.onThreatDetected(result)).catch(() => {});
-      }
-
-      void dispatchThreatWebhook(result, this.config.webhookConfig);
-
-      return result;
+      return this.finalizeHighRiskBlock(
+        'BLOCK_AITM_ORIGIN_MISMATCH',
+        `AiTM Reverse Proxy detected! Browser executed on '${payload.origin}' (hostname: '${payload.hostname}'), which violates allowed origins [${this.config.allowedOrigins.join(', ')}].`,
+        payload,
+        params,
+        nowIso,
+        100
+      );
     }
 
     if (payload.rttMs > this.config.maxAllowedRttMs) {

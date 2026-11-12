@@ -7,30 +7,33 @@ async function runLiveHttpSmokeTest(
   bankPort: number,
   proxyPort: number,
   publicKeyPem: string,
-  issueNonce: () => string
+  issueChallengeFn: () => { nonce: string; challengeProof: string }
 ): Promise<void> {
   const cyan = '\x1b[36m';
   const green = '\x1b[32m';
   const bold = '\x1b[1m';
   const reset = '\x1b[0m';
+  const browserUa = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0';
 
   console.log(`${bold}${cyan}[LIVE TCP/HTTP E2E CHECK] Testing live servers on :${bankPort} and :${proxyPort}...${reset}`);
 
   // 1. Direct Legitimate Login against :3000
+  const ch1 = issueChallengeFn();
   const legitPayload: TelemetryPayload = {
     hostname: 'localhost',
     origin: `http://localhost:${bankPort}`,
     port: String(bankPort),
     pathname: '/',
     referrer: `http://localhost:${bankPort}/`,
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0',
+    userAgent: browserUa,
     webdriver: false,
     canvasHash: 'a4b8019ef23019ca',
     webglRenderer: 'ANGLE (NVIDIA GeForce RTX 4080 Direct3D11)',
     domIntegrityValid: true,
     rttMs: 12,
     clientTimestamp: Date.now(),
-    nonce: issueNonce(),
+    nonce: ch1.nonce,
+    challengeProof: ch1.challengeProof,
   };
 
   const legitToken = encryptTelemetryNode(legitPayload, publicKeyPem);
@@ -38,6 +41,7 @@ async function runLiveHttpSmokeTest(
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': browserUa,
       'x-originlock-token': legitToken,
     },
     body: new URLSearchParams({
@@ -59,6 +63,7 @@ async function runLiveHttpSmokeTest(
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': browserUa,
     },
     body: new URLSearchParams({
       username: 'h.tunay@quellcloud.com',
@@ -79,20 +84,22 @@ async function runLiveHttpSmokeTest(
   );
 
   // 3. Relayed AiTM Login with Shield ON through Evilginx Proxy (:8080 -> :3000)
+  const ch2 = issueChallengeFn();
   const proxyPayload: TelemetryPayload = {
     hostname: 'localhost',
     origin: `http://localhost:${proxyPort}`,
     port: String(proxyPort),
     pathname: '/',
     referrer: `http://localhost:${proxyPort}/`,
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0',
+    userAgent: browserUa,
     webdriver: false,
     canvasHash: 'a4b8019ef23019ca',
     webglRenderer: 'ANGLE (NVIDIA GeForce RTX 4080 Direct3D11)',
     domIntegrityValid: true,
     rttMs: 64,
     clientTimestamp: Date.now(),
-    nonce: issueNonce(),
+    nonce: ch2.nonce,
+    challengeProof: ch2.challengeProof,
   };
 
   const proxyToken = encryptTelemetryNode(proxyPayload, publicKeyPem);
@@ -100,6 +107,7 @@ async function runLiveHttpSmokeTest(
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': browserUa,
       'x-originlock-token': proxyToken,
     },
     body: new URLSearchParams({
@@ -131,7 +139,7 @@ async function runLiveHttpSmokeTest(
 async function main(): Promise<void> {
   const isSelfTestOnly = process.argv.includes('--self-test');
 
-  // Step 1: Run the 4-stage cryptographic & AiTM self-test suite
+  // Step 1: Run the 8-stage cryptographic, AiTM & Red-Team anti-bypass self-test suite
   const suiteResult = await runSimulateSuite(false);
   if (!suiteResult.allPassed) {
     console.error('Cryptographic self-test failed; aborting demo startup.');
@@ -176,7 +184,8 @@ async function main(): Promise<void> {
 
   if (isSelfTestOnly) {
     await runLiveHttpSmokeTest(bankPort, proxyPort, bank.publicKeyPem, () => {
-      return bank.shield.issueChallenge('127.0.0.1').nonce;
+      const ch = bank.shield.issueChallenge('127.0.0.1');
+      return { nonce: ch.nonce, challengeProof: ch.challengeProof };
     });
     await proxy.Close();
     await bank.Close();

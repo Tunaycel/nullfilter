@@ -274,6 +274,7 @@ export function startBankServer(port = 3000): Promise<BankServerInstance> {
               message:
                 'Shield was OFF: Server trusted spoofed HTTP Host/Origin headers and leaked a REAL session cookie to the proxy!',
               nextNonce: nextChallenge.nonce,
+              nextChallengeProof: nextChallenge.challengeProof,
               verdict: naiveVerdict,
             })
           );
@@ -312,6 +313,7 @@ export function startBankServer(port = 3000): Promise<BankServerInstance> {
               status: 'SUCCESS',
               message: 'Authenticated to QuellCloud Vault',
               nextNonce: nextChallenge.nonce,
+              nextChallengeProof: nextChallenge.challengeProof,
               verdict,
             })
           );
@@ -333,6 +335,7 @@ export function startBankServer(port = 3000): Promise<BankServerInstance> {
             message:
               'AiTM Reverse Proxy neutralized! HTTP Host/Origin headers were spoofed, but WebCrypto RSA-OAEP telemetry exposed the proxy origin. Canary session injected into proxy DB.',
             nextNonce: nextChallenge.nonce,
+            nextChallengeProof: nextChallenge.challengeProof,
             verdict,
           })
         );

@@ -41,19 +41,31 @@ export function stripPemHeaders(pem: string): string {
 export function generatePolymorphicClientScript(
   publicKeyPem: string,
   nonce: string,
-  pingEndpoint = '/api/ping'
+  pingEndpoint = '/api/ping',
+  challengeProof = ''
 ): string {
   const xorKey = crypto.randomBytes(8);
   const xorKeyLiteral = `[${Array.from(xorKey).join(',')}]`;
+  const affineOffset = 17 + (xorKey[0] % 37);
+
+  const proofStr = challengeProof || '';
+  const halfLen = Math.floor(proofStr.length / 2);
+  const proofHalfA = proofStr.slice(0, halfLen);
+  const proofHalfB = proofStr.slice(halfLen);
+
+  const encodedProofA = xorEncodeString(proofHalfA, xorKey).map((b) => b + affineOffset);
+  const encodedProofB = xorEncodeString(proofHalfB, xorKey).map((b) => b + affineOffset);
 
   const idKey = randomIdentifier('_k_');
   const idDecode = randomIdentifier('_dec_');
   const idPemB64 = randomIdentifier('_pk_');
   const idNonce = randomIdentifier('_nc_');
+  const idProofOverride = randomIdentifier('_pf_');
   const idPingUrl = randomIdentifier('_pg_');
   const idCanvasFn = randomIdentifier('_cv_');
   const idWebglFn = randomIdentifier('_gl_');
   const idIntegrityFn = randomIdentifier('_in_');
+  const idSynthProofFn = randomIdentifier('_sp_');
   const idRttFn = randomIdentifier('_rt_');
   const idB64ToBuf = randomIdentifier('_b2a_');
   const idBufToB64 = randomIdentifier('_a2b_');
@@ -95,8 +107,16 @@ export function generatePolymorphicClientScript(
   }
   var ${idPemB64}=${JSON.stringify(cleanSpkiBase64)};
   var ${idNonce}=${safeNonce};
+  var ${idProofOverride}=null;
   var ${idPingUrl}=${safePing};
   var ${idCachedToken}=null;
+
+  function ${idSynthProofFn}(){
+    if(${idProofOverride})return ${idProofOverride};
+    var pA=${JSON.stringify(encodedProofA)}.map(function(v){return v-${affineOffset};});
+    var pB=${JSON.stringify(encodedProofB)}.map(function(v){return v-${affineOffset};});
+    return ${idDecode}(pA)+${idDecode}(pB);
+  }
 
   function ${idB64ToBuf}(b64){
     var bin=window.atob(b64);
@@ -118,8 +138,20 @@ export function generatePolymorphicClientScript(
       var cObj=window[${idDecode}(${encCrypto})];
       var sObj=cObj&&cObj[${idDecode}(${encSubtle})];
       if(!sObj)return false;
-      var fnStr=Function.prototype.toString.call(sObj[${idDecode}(${encEncrypt})]);
-      return fnStr.indexOf("[native code]")!==-1;
+      var toStr=Function.prototype.toString;
+      function chk(fn,expectedName){
+        if(typeof fn!=="function")return false;
+        if(Object.prototype.hasOwnProperty.call(fn,"prototype"))return false;
+        var nm=String(fn.name||"");
+        if(nm.indexOf("bound ")===0||(expectedName&&nm!==expectedName))return false;
+        var src=toStr.call(fn);
+        return src.indexOf("[native code]")!==-1;
+      }
+      if(!chk(toStr,"toString"))return false;
+      if(!chk(sObj[${idDecode}(${encEncrypt})],${idDecode}(${encEncrypt})))return false;
+      if(!chk(JSON.stringify,"stringify"))return false;
+      if(typeof TextEncoder!=="undefined"&&!chk(TextEncoder.prototype.encode,"encode"))return false;
+      return true;
     }catch(_e){
       return false;
     }
@@ -187,6 +219,7 @@ export function generatePolymorphicClientScript(
     var locProp=${idDecode}(${encLocation});
     var locObj=window[locProp];
     var rtt=await ${idRttFn}();
+    var synthProof=${idSynthProofFn}();
     var payload={
       hostname:String(locObj[${idDecode}(${encHostname})]||""),
       origin:String(locObj[${idDecode}(${encOrigin})]||""),
@@ -198,6 +231,7 @@ export function generatePolymorphicClientScript(
       canvasHash:${idCanvasFn}(),
       webglRenderer:${idWebglFn}(),
       domIntegrityValid:${idIntegrityFn}(),
+      challengeProof:synthProof||undefined,
       rttMs:rtt,
       clientTimestamp:Date.now(),
       nonce:${idNonce}
@@ -294,7 +328,13 @@ export function generatePolymorphicClientScript(
   var api={
     getToken:function(){return ${idBuildToken}();},
     getCachedToken:function(){return ${idCachedToken};},
-    setNonce:function(nextNonce){if(typeof nextNonce==="string"&&nextNonce.length>0){${idNonce}=nextNonce;${idCachedToken}=null;}},
+    setNonce:function(nextNonce,nextProof){
+      if(typeof nextNonce==="string"&&nextNonce.length>0){
+        ${idNonce}=nextNonce;
+        if(typeof nextProof==="string")${idProofOverride}=nextProof;
+        ${idCachedToken}=null;
+      }
+    },
     refreshHook:${idHookForms},
     probeId:${JSON.stringify(idBuildToken)},
     xorKeyHex:${JSON.stringify(xorKey.toString('hex'))}
