@@ -54,7 +54,31 @@ async function runLiveHttpSmokeTest(
   }
   console.log(`  ${green}[PASS]${reset} Direct HTTP POST to http://localhost:${bankPort}/api/login -> ${directJson.status}`);
 
-  // 2. Relayed AiTM Login through Evilginx Proxy (:8080 -> :3000)
+  // 2. Relayed AiTM Login with Shield OFF (Demonstrates how standard servers get compromised)
+  const unprotectedRes = await fetch(`http://127.0.0.1:${proxyPort}/api/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      username: 'h.tunay@quellcloud.com',
+      password: 'QCloud#ZeroTrust!2026',
+      totp_code: '492817',
+      _shield_mode: 'OFF',
+    }).toString(),
+  });
+
+  const unprotectedJson = (await unprotectedRes.json()) as { status: string };
+  if (unprotectedJson.status !== 'COMPROMISED_UNPROTECTED') {
+    throw new Error(
+      `Expected COMPROMISED_UNPROTECTED when Shield is OFF, got ${unprotectedJson.status}`
+    );
+  }
+  console.log(
+    `  ${green}[PASS]${reset} Proxied HTTP POST (Shield OFF / Standard Server) -> ${unprotectedJson.status}`
+  );
+
+  // 3. Relayed AiTM Login with Shield ON through Evilginx Proxy (:8080 -> :3000)
   const proxyPayload: TelemetryPayload = {
     hostname: 'localhost',
     origin: `http://localhost:${proxyPort}`,
@@ -82,6 +106,7 @@ async function runLiveHttpSmokeTest(
       username: 'h.tunay@quellcloud.com',
       password: 'QCloud#ZeroTrust!2026',
       totp_code: '492817',
+      _shield_mode: 'ON',
       _originlock_token: proxyToken,
     }).toString(),
   });

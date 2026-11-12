@@ -32,6 +32,7 @@ export interface BankServerInstance {
 export interface SocBroadcastEvent {
   type: 'VERIFICATION_VERDICT' | 'POLYMORPHIC_ROTATION';
   timestamp: string;
+  shieldMode?: 'ON' | 'OFF';
   username?: string;
   observedHttpHost?: string;
   observedHttpOrigin?: string;
@@ -225,6 +226,60 @@ export function startBankServer(port = 3000): Promise<BankServerInstance> {
           ? String(req.headers['x-forwarded-for'])
           : undefined;
 
+        const shieldMode = (parsedFields['_shield_mode'] || 'ON').toUpperCase();
+        const nextChallenge = shield.issueChallenge(clientIp, '/api/ping');
+
+        // Unprotected Comparison Mode: simulates a traditional server checking only HTTP Host/Origin headers
+        if (shieldMode === 'OFF') {
+          const realSessionToken = `REAL_AUTHENTICATED_SESSION_TOKEN_${crypto
+            .randomBytes(12)
+            .toString('hex')}`;
+
+          const naiveVerdict: VerificationResult = {
+            allowed: true,
+            status: 'ALLOW',
+            reason: `UNPROTECTED MODE (Shield OFF): Naive server trusted HTTP Origin header (${observedHttpOrigin}) and issued a REAL session cookie to the proxy!`,
+            decryptedPayload: {
+              hostname: observedHttpHost.replace(/:\d+$/, ''),
+              origin: observedHttpOrigin,
+              port: String(port),
+              pathname: '/api/login',
+              referrer: String(req.headers['referer'] ?? ''),
+              userAgent,
+              webdriver: false,
+              canvasHash: 'uninspected-no-shield',
+              rttMs: 0,
+              clientTimestamp: Date.now(),
+              nonce: 'unverified',
+            },
+          };
+
+          broadcastSocEvent({
+            type: 'VERIFICATION_VERDICT',
+            timestamp: new Date().toISOString(),
+            shieldMode: 'OFF',
+            username,
+            observedHttpHost,
+            observedHttpOrigin,
+            verdict: naiveVerdict,
+          });
+
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Set-Cookie': `vault_session=${realSessionToken}; Path=/; HttpOnly; SameSite=Lax`,
+          });
+          res.end(
+            JSON.stringify({
+              status: 'COMPROMISED_UNPROTECTED',
+              message:
+                'Shield was OFF: Server trusted spoofed HTTP Host/Origin headers and leaked a REAL session cookie to the proxy!',
+              nextNonce: nextChallenge.nonce,
+              verdict: naiveVerdict,
+            })
+          );
+          return;
+        }
+
         const verdict = await shield.verifyRequest({
           token,
           clientIp,
@@ -236,13 +291,12 @@ export function startBankServer(port = 3000): Promise<BankServerInstance> {
         broadcastSocEvent({
           type: 'VERIFICATION_VERDICT',
           timestamp: new Date().toISOString(),
+          shieldMode: 'ON',
           username,
           observedHttpHost,
           observedHttpOrigin,
           verdict,
         });
-
-        const nextChallenge = shield.issueChallenge(clientIp, '/api/ping');
 
         if (verdict.allowed) {
           const realSessionToken = `REAL_AUTHENTICATED_SESSION_TOKEN_${crypto
