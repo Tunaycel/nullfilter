@@ -42,10 +42,10 @@ jobs:
             npx tsc --version
           fi
 
-      - name: Run Node Assertion Test Suite (Red-Team Forgery PoC & Commodity Defense)
+      - name: Run Node Assertion Test Suite (Red-Team Forgery PoC & WebAuthn Verifier)
         run: |
           if [ -f packages/cli/dist/redteam-forgery.test.js ]; then
-            node --test packages/cli/dist/redteam-forgery.test.js
+            node --test packages/cli/dist/redteam-forgery.test.js packages/cli/dist/webauthn-verifier.test.js
           fi
 
       - name: Run Telemetry, Deception & Architectural Limit Suite

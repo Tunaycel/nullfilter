@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "build": "pnpm -r run build",
-    "test": "pnpm -r run build && node --test packages/cli/dist/redteam-forgery.test.js",
+    "test": "pnpm -r run build && node --test packages/cli/dist/redteam-forgery.test.js packages/cli/dist/webauthn-verifier.test.js",
     "demo": "node apps/playground/dist/run-demo.js",
     "simulate": "node packages/cli/dist/index.js simulate",
     "audit": "node packages/cli/dist/index.js audit",

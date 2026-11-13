@@ -114,16 +114,22 @@ Because **WebAuthn/Passkeys and NullFilter solve two orthogonal problems**:
 
 | Threat Vector / Attacker Capability | NullFilter Telemetry (`OriginLockShield`) | NullFilter Canary Honeypot (`generatePoisonedSession`) | FIDO2 / WebAuthn Passkey (`clientDataJSON` + Hardware Key) | Post-Auth Token Binding (`DPoP` / `DBSC` / `CAE`) |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. Commodity Evilginx / Modlishka Phishlet (`sub_filter` YAML)** | **DETECTS & BLOCKS** (`BLOCK_AITM_ORIGIN_MISMATCH`) | **POISONS PROXY DB** (Injects tracked `HS256` Canary cookie) | **BLOCKS LOGIN** (Browser/OS enforces `rpId` & `origin`) | N/A (Login blocked) |
+| **1. Commodity Evilginx / Modlishka Phishlet (`sub_filter` YAML)** | **DETECTS & BLOCKS** (`BLOCK_AITM_ORIGIN_MISMATCH`) | **POISONS PROXY DB** (Injects tracked `HS256` Canary cookie) | **BLOCKS LOGIN** (Browser/OS enforces `rpId` & `origin`; no valid cookie reaches proxy) | N/A (Login blocked) |
 | **2. Unmasking Phishing Domain & Proxy IP to Defender SOC** | **YES** (Decrypts actual proxy `window.location.origin`) | **YES** (Tracks attacker when Canary cookie is replayed) | **NO** (Fails silently on client if `rpId` differs) | N/A |
 | **3. Naive Replay / Bit-Flip / Headless SwiftShader Farm** | **DETECTS & BLOCKS** (`Tests 3, 4, 7, 8`) | **POISONS PROXY DB** | **BLOCKS LOGIN** | N/A |
-| **4. Tailored Attacker: Standalone Wire-Script Forger (`Finding #1` / `Test 9`)** | **BYPASSED (`ALLOW`)** — *Not an auth boundary* | **BYPASSED** (Canary only fires on `BLOCK` verdicts) | **BLOCKS LOGIN** (Browser C++/TPM signs real origin; JS cannot forge) | N/A |
+| **4. Tailored Attacker: Standalone Wire-Script Forger (`Finding #1` / `Test 9` ↔ `Test 10`)** | **BYPASSED (`ALLOW`)** — *Wire public key suffices* | **BYPASSED** (Canary only fires on `BLOCK` verdicts) | **BLOCKS (`Test 10`)** (`BLOCK_WEBAUTHN_INVALID_SIGNATURE` — attacker lacks hardware private key) | N/A |
 | **5. Tailored Attacker: In-Transit JS AST Rewriter (`Finding #3`)** | **BYPASSED (`ALLOW`)** — *Not an auth boundary* | **BYPASSED** | **BLOCKS LOGIN** (`navigator.credentials` runs in C++, immune to JS rewrite) | N/A |
-| **6. Post-Authentication Bearer Session Cookie Theft** | **NOT COVERED** (Pre-auth / login-time probe only) | **DETECTS REPLAY** (Only if cookie was a Canary) | **NOT COVERED** (WebAuthn only protects the login ceremony) | **MITIGATES** (Binds session to client key / revokes on anomaly) |
+| **6. Downgrade Attack (Phishlet hides passkey UI, forces password/OTP fallback)** | **DETECTS COMMODITY PHISHLET** (on fallback form if script relayed) | **POISONS PROXY DB** (on commodity phishlet fallback) | **BYPASSED IF FALLBACK OPEN** (Passkey login never runs; victim phished on password/OTP) | N/A (Fallback issued cookie) |
+| **7. Post-Authentication Non-AiTM Cookie Theft (Infostealer / XSS)** | **NOT COVERED** (Pre-auth / login-time probe only) | **DETECTS REPLAY** (Only if stolen cookie was a Canary) | **NOT COVERED** (WebAuthn blocks AiTM login, not local malware/XSS cookie exfiltration) | **MITIGATES** (Binds session to client key / revokes on anomaly) |
+
+### 5.1. Test 9 ↔ Test 10 Cryptographic Asymmetry & Verifier Scope
+- **Test 9 (`redteam-forgery.test.ts`):** The attacker only needs the server's **public key** and wire parameters from `GET /` to forge a valid telemetry token -> **`ALLOW`**.
+- **Test 10 (`webauthn-verifier.test.ts`):** Even when the attacker observes **all wire data** (challenge, `rpId`, `allowedOrigins`, `credentialId`, and stored `publicKeySpkiPem`), forging an assertion without the user's P-256 private key fails verification -> **`BLOCK_WEBAUTHN_INVALID_SIGNATURE`**.
+- **Node.js Test Boundary:** Node tests prove all verifier invariants (`origin`, `rpIdHash`, `UP`/`UV`, `signCount`, `type`, `crossOrigin`, raw `clientDataJSON` SHA-256, DER ECDSA); hardware key non-extractability and C++ `clientDataJSON.origin` population are platform guarantees enforced by the browser/OS. Production deployments should use `@simplewebauthn/server` for full COSE/CBOR registration attestation.
 
 ---
 
-## 6. Reproducing the Proof-of-Concept
+## 6. Reproducing the Proof-of-Concept & Verifier Suite
 
 Run the automated `node:test` assertion suite and the 9-stage CLI simulation from the workspace root:
 
@@ -132,4 +138,4 @@ pnpm test
 pnpm run simulate
 ```
 
-Both commands execute `forgeTokenFromWireScript()` against a live `OriginLockShield` instance and assert `verdict.status === 'ALLOW'` (`Test 9`), ensuring this architectural boundary remains transparently documented and tested on every commit.
+`pnpm test` executes both [`redteam-forgery.test.ts`](../packages/cli/src/redteam-forgery.test.ts) (`Test 9`: permanent `ALLOW` architectural boundary proof) and [`webauthn-verifier.test.ts`](../packages/cli/src/webauthn-verifier.test.ts) (`Test 10` + 12 negative/invariant WebAuthn tests).
