@@ -1,9 +1,18 @@
 #!/usr/bin/env node
-import { runEndpointAudit, runSimulateSuite } from './commands/audit';
+import {
+  forgeTokenFromWireScript,
+  runEndpointAudit,
+  runSimulateSuite,
+} from './commands/audit';
 import { runInitCommand } from './commands/init';
 
 export { runInitCommand } from './commands/init';
-export { runSimulateSuite, runEndpointAudit } from './commands/audit';
+export {
+  forgeTokenFromWireScript,
+  runSimulateSuite,
+  runEndpointAudit,
+  WireForgeryResult,
+} from './commands/audit';
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);

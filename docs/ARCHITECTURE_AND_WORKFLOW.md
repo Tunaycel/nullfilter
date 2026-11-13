@@ -1,4 +1,4 @@
-# NullFilter (`@nullfilter/*`) — Cryptographic Origin Attestation & Active AiTM Defense Framework
+# NullFilter (`@nullfilter/*`) — AiTM Detection Telemetry, Canary Honeypot Deception & Red-Team Research Framework
 
 **Author:** Hüseyin Tunay Çelik (`h.tunaycelik@gmail.com`)  
 **Repository:** `Tunaycel/nullfilter`  
@@ -6,11 +6,14 @@
 
 ---
 
-## 1. Executive Summary & Architectural Objective
+## 1. Executive Summary & Honest Architectural Boundary
 
-Reverse-proxy Adversary-in-the-Middle (AiTM) frameworks (such as Evilginx2, Modlishka, and Muraena) intercept authentication flows by terminating TLS on a lookalike domain, rewriting HTTP headers (`Host`, `Origin`, `Referer`) and response bodies (`sub_filter`) in transit, and relaying traffic through residential proxy networks. Because the backend server only observes layer-7 HTTP headers that the proxy explicitly rewrites to match the expected origin, conventional server-side origin checks fail.
+Reverse-proxy Adversary-in-the-Middle (AiTM) frameworks (such as Evilginx2, Modlishka, and Muraena) intercept authentication flows by terminating TLS on a lookalike domain, rewriting HTTP headers (`Host`, `Origin`, `Referer`) and response bodies (`sub_filter`) in transit, and relaying traffic through residential proxy networks. Because the backend server only observes layer-7 HTTP headers that the proxy explicitly rewrites to match the expected origin, conventional server-side HTTP header checks fail.
 
-**NullFilter** neutralizes proxy rewrite layers (`sub_filter`) by shifting origin attestation into the client DOM execution environment using asymmetric hybrid envelope cryptography (`RSA-OAEP-2048` + `AES-256-GCM`), polymorphic runtime script generation, active round-trip time (RTT) triangulation, and honeypot session poisoning.
+**NullFilter** provides a **Commodity Phishlet Detection, Early-Warning Threat Intelligence, and Active Deception (Canary Honeypot) layer** by shifting telemetry collection into the client DOM execution environment using asymmetric hybrid envelope cryptography (`RSA-OAEP-2048` + `AES-256-GCM`), polymorphic runtime script generation, round-trip time (RTT) measurement, and honeypot session poisoning.
+
+> **Architectural Boundary (Commodity vs. Tailored Threat Model):**  
+> Client-side telemetry encrypted under a server public key is **not** an unforgeable cryptographic authentication boundary. While it reliably detects and poisons **commodity phishlets** (`sub_filter` YAML configurations that relay the script to the victim browser), a **tailored attacker** who writes a standalone wire-script parser can extract the public key, nonce, and affine/XOR parameters from `GET /` (or read `nextChallengeProof` from SPA rotation JSON) to forge an `ALLOW` token without a victim browser (`Test 9` in [`redteam-forgery.test.ts`](../packages/cli/src/redteam-forgery.test.ts) and [`docs/RED_TEAM_ANALYSIS.md`](./RED_TEAM_ANALYSIS.md)). Unforgeable authentication-time origin binding requires browser-native **FIDO2 / WebAuthn Passkeys**, and post-authentication session protection requires **DPoP / Token Binding / CAE**.
 
 > **Compatibility Note:** All packages export both `@nullfilter/*` primary interfaces (`NullFilterShield`, `NullFilterConfig`, `createNullFilterToken`) and full `OriginLock*` aliases (`OriginLockShield`, `OriginLockConfig`, `createOriginLockToken`, `x-originlock-token`, `_originlock_token`) for drop-in interoperability.
 
@@ -53,7 +56,8 @@ nullfilter/
 ├── .gitignore
 ├── README.md
 ├── docs/
-│   └── ARCHITECTURE_AND_WORKFLOW.md
+│   ├── ARCHITECTURE_AND_WORKFLOW.md
+│   └── RED_TEAM_ANALYSIS.md
 ├── packages/
 │   ├── core/
 │   │   ├── package.json
@@ -115,6 +119,7 @@ nullfilter/
   7. `feat/interactive-playground` — Live Vault server (`:3000`), Loopback Proxy Simulator (`:8080`), SSE SOC Telemetry Console, and root `README.md`.
   8. `feat/playground-shield-toggle` — Interactive side-by-side comparison mode (`Shield: ON` vs `Shield: OFF`).
   9. `feat/adversarial-hardening-v2` — v2.0 Red-Team anti-bypass hardening (Split Affine+XOR Challenge Proof, Native Prototype & `.bind()` Integrity Verification, Headless/Software-GPU Detection, and Cryptographic User-Agent Context Binding).
+  10. `feat/redteam-poc-and-reposition` — Honest architectural positioning, standalone wire-script forgery PoC (`forgeTokenFromWireScript` + `node:test` assertion suite), and `docs/RED_TEAM_ANALYSIS.md`.
 - **Verification Gate:** Every branch is compiled, verified, and reviewed locally before user approval for remote push and Pull Request creation.
 
 ---

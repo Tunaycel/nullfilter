@@ -42,7 +42,13 @@ jobs:
             npx tsc --version
           fi
 
-      - name: Run 4-Stage Cryptographic & AiTM Simulation Suite
+      - name: Run Node Assertion Test Suite (Red-Team Forgery PoC & Commodity Defense)
+        run: |
+          if [ -f packages/cli/dist/redteam-forgery.test.js ]; then
+            node --test packages/cli/dist/redteam-forgery.test.js
+          fi
+
+      - name: Run Telemetry, Deception & Architectural Limit Suite
         run: |
           if [ -f packages/cli/dist/index.js ]; then
             node packages/cli/dist/index.js simulate
