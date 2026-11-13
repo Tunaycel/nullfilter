@@ -489,10 +489,39 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
       <div class="vault-card">
         <div class="vault-header">
           <h1>QuellCloud Root Key Vault</h1>
-          <p>Protected by polymorphic DOM telemetry &amp; hybrid RSA-OAEP-2048 + AES-256-GCM origin sealing.</p>
+          <p>Passkey (WebAuthn ES256) authentication boundary + NullFilter commodity AiTM telemetry &amp; Canary deception.</p>
         </div>
 
-        <form id="vaultLoginForm" action="/api/login" method="POST" data-originlock="true">
+        <!-- Primary Authentication Boundary: FIDO2 / WebAuthn Passkey -->
+        <div style="border: 1px solid rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.06); border-radius: 10px; padding: 14px; margin-bottom: 18px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+            <strong style="color: var(--accent-emerald); font-size: 13px;">🔐 Primary Auth Boundary: FIDO2 / WebAuthn Passkey (ES256)</strong>
+            <span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">rpId: localhost</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 10px 0; line-height: 1.45;">
+            <strong>localhost Port Simulation Note:</strong> Because <code>rpId</code> is host-only (<code>localhost</code>), the browser signs on both <code>:3000</code> and <code>:8080</code>. This demo exercises the <strong>second line of defense</strong> (server-side <code>clientDataJSON.origin</code> verification). On real lookalike domains (<code>quellcloud.com</code> vs <code>quellcl0ud.com</code>), the <strong>first line of defense</strong> (<code>rpId</code>) fails silently in the browser.
+          </p>
+          <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" id="btnRegisterPasskey" class="env-btn" style="flex:1; background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.45); color: #34d399; font-weight: 600;">
+              1. Register Passkey (:3000 Only)
+            </button>
+            <button type="button" id="btnLoginPasskey" class="env-btn" style="flex:1; background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; font-weight: 600;">
+              2. Sign In with Passkey
+            </button>
+          </div>
+          <div id="webauthnResponseBanner" class="response-banner" style="margin-top: 10px;"></div>
+        </div>
+
+        <!-- Explicitly Labeled Fallback Downgrade Vector -->
+        <div style="border: 1px dashed rgba(245, 158, 11, 0.45); border-radius: 10px; padding: 14px; margin-bottom: 8px;">
+          <div style="margin-bottom: 10px;">
+            <strong style="color: #fbbf24; font-size: 12px;">⚠️ Fallback Password + TOTP Form (Phishable Downgrade Vector)</strong>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">
+              Kept open intentionally: if password/OTP fallback remains enabled, a phishlet can hide the Passkey button and downgrade victims here.
+            </div>
+          </div>
+
+          <form id="vaultLoginForm" action="/api/login" method="POST" data-originlock="true">
           <div class="form-group">
             <label for="username">Enterprise Principal (Email)</label>
             <input
@@ -546,6 +575,7 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
             Authenticate &amp; Seal Origin Telemetry
           </button>
         </form>
+        </div>
 
         <div id="loginResponseBanner" class="response-banner"></div>
       </div>
@@ -675,6 +705,41 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
         var feed = document.getElementById('socEventFeed');
         var card = document.createElement('div');
 
+        if (evt.type === 'WEBAUTHN_EVENT') {
+          var wv = evt.webauthnVerdict || {};
+          if (wv.allowed) {
+            allowCount++;
+            document.getElementById('metricAllowCount').textContent = String(allowCount);
+            card.className = 'event-card allow';
+            card.innerHTML =
+              '<div class="event-top">' +
+                '<span class="verdict-pill allow">🔐 WEBAUTHN ' + escapeHtml(evt.webauthnAction || 'LOGIN') + ': ' + escapeHtml(wv.status) + '</span>' +
+                '<span style="color: var(--text-muted);">' + escapeHtml(evt.timestamp || '') + '</span>' +
+              '</div>' +
+              '<div>' + escapeHtml(wv.reason || '') + '</div>' +
+              '<div class="event-grid">' +
+                '<div><strong>Verified Origin:</strong> <span style="color:#10b981;">' + escapeHtml(wv.verifiedOrigin || 'N/A') + '</span></div>' +
+                '<div><strong>Spoofed HTTP Origin:</strong> ' + escapeHtml(evt.observedHttpOrigin || 'N/A') + '</div>' +
+              '</div>';
+          } else {
+            aitmCount++;
+            document.getElementById('metricAitmCount').textContent = String(aitmCount);
+            card.className = 'event-card aitm';
+            card.innerHTML =
+              '<div class="event-top">' +
+                '<span class="verdict-pill aitm">🛡️ WEBAUTHN BLOCK: ' + escapeHtml(wv.status || 'REJECTED') + '</span>' +
+                '<span style="color: var(--text-muted);">' + escapeHtml(evt.timestamp || '') + '</span>' +
+              '</div>' +
+              '<div style="color:#fca5a5; margin-bottom:6px;">' + escapeHtml(wv.reason || '') + '</div>' +
+              '<div class="event-grid">' +
+                '<div><strong>Spoofed HTTP Origin:</strong> <span style="color:#fbbf24;">' + escapeHtml(evt.observedHttpOrigin || 'N/A') + '</span></div>' +
+                '<div><strong>Browser-Signed clientDataJSON.origin:</strong> <span style="color:#ef4444; font-weight:700;">' + escapeHtml(wv.verifiedOrigin || 'mismatch') + '</span></div>' +
+              '</div>';
+          }
+          feed.prepend(card);
+          return;
+        }
+
         if (evt.type === 'POLYMORPHIC_ROTATION') {
           rotationCount++;
           document.getElementById('metricRotationCount').textContent = String(rotationCount);
@@ -773,6 +838,157 @@ export function renderVaultUi(options: VaultUiRenderOptions): string {
       es.onerror = function () {
         document.getElementById('sseStatusDot').style.background = '#f59e0b';
       };
+
+      // WebAuthn / Passkey Helpers (Base64URL <-> ArrayBuffer)
+      function b64UrlToUint8(b64Url) {
+        var b64 = b64Url.replace(/-/g, '+').replace(/_/g, '/');
+        while (b64.length % 4) b64 += '=';
+        var bin = window.atob(b64);
+        var arr = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return arr;
+      }
+
+      function bufToB64Url(buf) {
+        var bytes = new Uint8Array(buf);
+        var bin = '';
+        for (var i = 0; i < bytes.byteLength; i++) bin += String.fromCharCode(bytes[i]);
+        return window.btoa(bin).split('+').join('-').split('/').join('_').replace(/=+$/, '');
+      }
+
+      var btnRegPasskey = document.getElementById('btnRegisterPasskey');
+      var btnLoginPasskey = document.getElementById('btnLoginPasskey');
+      var waBanner = document.getElementById('webauthnResponseBanner');
+
+      if (currentPort !== legitPort && btnRegPasskey) {
+        btnRegPasskey.disabled = true;
+        btnRegPasskey.style.opacity = '0.5';
+        btnRegPasskey.title = 'Registration is locked to :3000 to prevent TOFU session-hijack persistence.';
+        btnRegPasskey.textContent = '1. Register Passkey (Locked on :8080)';
+      }
+
+      if (btnRegPasskey) {
+        btnRegPasskey.addEventListener('click', async function () {
+          try {
+            if (!window.PublicKeyCredential) {
+              throw new Error('WebAuthn PublicKeyCredential API is not supported in this browser.');
+            }
+            var token = window.__OriginLock ? await window.__OriginLock.getToken() : '';
+            var optRes = await fetch('/api/webauthn/register/options', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-originlock-token': token
+              },
+              body: '{}'
+            });
+            var optData = await optRes.json();
+            if (optData.nextNonce && window.__OriginLock && typeof window.__OriginLock.setNonce === 'function') {
+              window.__OriginLock.setNonce(optData.nextNonce, optData.nextChallengeProof);
+            }
+            if (!optRes.ok) {
+              throw new Error(optData.message || 'Registration denied');
+            }
+
+            var cred = await navigator.credentials.create({
+              publicKey: {
+                challenge: b64UrlToUint8(optData.challengeB64Url),
+                rp: optData.rp,
+                user: {
+                  id: b64UrlToUint8(optData.user.idB64Url),
+                  name: optData.user.name,
+                  displayName: optData.user.displayName
+                },
+                pubKeyCredParams: optData.pubKeyCredParams,
+                authenticatorSelection: {
+                  userVerification: 'required',
+                  residentKey: 'preferred'
+                },
+                attestation: 'none',
+                timeout: 60000
+              }
+            });
+
+            // Fail-closed check: require browser getPublicKey() SPKI export (no CBOR/COSE fallback)
+            if (!cred || !cred.response || typeof cred.response.getPublicKey !== 'function') {
+              throw new Error('Browser does not expose AuthenticatorAttestationResponse.getPublicKey() (fail-closed).');
+            }
+            var spkiBuf = cred.response.getPublicKey();
+            if (!spkiBuf) {
+              throw new Error('AuthenticatorAttestationResponse.getPublicKey() returned null (fail-closed).');
+            }
+
+            var verifyRes = await fetch('/api/webauthn/register/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                credentialId: cred.id,
+                publicKeySpkiB64Url: bufToB64Url(spkiBuf)
+              })
+            });
+            var verifyData = await verifyRes.json();
+            if (!verifyRes.ok) {
+              throw new Error(verifyData.message || 'Verification failed');
+            }
+            waBanner.className = 'response-banner success';
+            waBanner.innerHTML = '<strong>✔ PASSKEY REGISTERED ON :3000</strong><br/>' + escapeHtml(verifyData.message) + '<br/>Switch to <strong>:8080 (Evilginx Proxy)</strong> and click Sign In with Passkey to observe server-side origin rejection.';
+          } catch (err) {
+            waBanner.className = 'response-banner trapped';
+            waBanner.innerHTML = '<strong>✖ PASSKEY REGISTRATION ERROR</strong><br/>' + escapeHtml(err && err.message ? err.message : String(err));
+          }
+        });
+      }
+
+      if (btnLoginPasskey) {
+        btnLoginPasskey.addEventListener('click', async function () {
+          try {
+            if (!window.PublicKeyCredential) {
+              throw new Error('WebAuthn PublicKeyCredential API is not supported in this browser.');
+            }
+            var optRes = await fetch('/api/webauthn/login/options', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: '{}'
+            });
+            var optData = await optRes.json();
+            var allowCreds = (optData.allowCredentials || []).map(function (id) {
+              return { type: 'public-key', id: b64UrlToUint8(id) };
+            });
+
+            var assertion = await navigator.credentials.get({
+              publicKey: {
+                challenge: b64UrlToUint8(optData.challengeB64Url),
+                rpId: optData.rpId,
+                userVerification: 'required',
+                allowCredentials: allowCreds,
+                timeout: 60000
+              }
+            });
+
+            var verifyRes = await fetch('/api/webauthn/login/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                credentialId: assertion.id,
+                authenticatorDataB64Url: bufToB64Url(assertion.response.authenticatorData),
+                clientDataJsonB64Url: bufToB64Url(assertion.response.clientDataJSON),
+                signatureB64Url: bufToB64Url(assertion.response.signature)
+              })
+            });
+            var verifyData = await verifyRes.json();
+            if (verifyRes.ok && verifyData.status === 'WEBAUTHN_SUCCESS') {
+              waBanner.className = 'response-banner success';
+              waBanner.innerHTML = '<strong>✔ PASSKEY LOGIN VERIFIED</strong><br/>' + escapeHtml(verifyData.message);
+            } else {
+              waBanner.className = 'response-banner trapped';
+              waBanner.innerHTML = '<strong>🛡️ PASSKEY AiTM LOGIN BLOCKED</strong><br/>' + escapeHtml(verifyData.message);
+            }
+          } catch (err) {
+            waBanner.className = 'response-banner trapped';
+            waBanner.innerHTML = '<strong>✖ PASSKEY LOGIN ERROR</strong><br/>' + escapeHtml(err && err.message ? err.message : String(err));
+          }
+        });
+      }
 
       // Handle Login Form submission via fetch so the page stays live & updates the banner + SOC feed
       var form = document.getElementById('vaultLoginForm');
