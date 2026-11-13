@@ -113,15 +113,20 @@ Because a full browser telemetry payload (`hostname`, `origin`, `pathname`, `ref
 pnpm install
 pnpm test
 ```
-`pnpm test` compiles all workspace packages and runs the `node:test` assertion suite (`packages/cli/dist/redteam-forgery.test.js`), verifying both:
-1. **Architectural Limit PoC (`assert.strictEqual(verdict.status, 'ALLOW')`):** Standalone attacker script extracts parameters purely from `GET /` wire script bytes and forges a valid token without a victim browser.
-2. **Commodity Phishlet Defense (`assert.strictEqual(verdict.status, 'BLOCK_AITM_ORIGIN_MISMATCH')`):** Unmodified Evilginx proxy relay is caught and poisoned with a verifiable `HS256` Canary JWT cookie.
+`pnpm test` compiles all workspace packages and runs the 15-test `node:test` assertion suite (`redteam-forgery.test.js` + `webauthn-verifier.test.js`), verifying:
+1. **Architectural Limit PoC (`Test 9 -> ALLOW`):** Standalone attacker script extracts parameters purely from `GET /` wire script bytes and forges a valid telemetry token without a victim browser.
+2. **WebAuthn Cryptographic Asymmetry (`Test 10 -> BLOCK_WEBAUTHN_INVALID_SIGNATURE`) + 12 Negative/Invariant Checks:** Attacker observing all wire data cannot forge a WebAuthn assertion without the user's private key.
+3. **Commodity Phishlet Defense (`BLOCK_AITM_ORIGIN_MISMATCH`):** Unmodified Evilginx proxy relay is caught and poisoned with a verifiable `HS256` Canary JWT cookie.
 
-### 2. Launch the Live `:3000` vs `:8080` Playground
+### 2. Launch the Live `:3000` vs `:8080` Playground (Passkey + Downgrade Demo)
 ```bash
 pnpm demo
 ```
 When `pnpm demo` runs, it executes the **9-Stage Telemetry, Deception & Architectural Limit Suite** (`8/8 Commodity & Tampering Checks + 1/1 Architectural Limit PoC`), starts the **QuellCloud Enterprise Vault** on `http://localhost:3000`, and starts the **Simulated Evilginx Reverse Proxy** on `http://localhost:8080`.
+
+- **Passkey Demo (`:3000` -> `:8080`):** Register a Passkey (`ES256` SPKI via `getPublicKey()`, fail-closed if unavailable) on `http://localhost:3000`, then switch to `http://localhost:8080` and click **Sign In with Passkey**.
+  > **Port-Based `localhost` Simulation Note:** Because WebAuthn `rpId` is host-only (`localhost`), the browser still signs on `:8080` and includes `"origin": "http://localhost:8080"` inside `clientDataJSON`, allowing the server to reject it (`BLOCK_WEBAUTHN_ORIGIN_MISMATCH` — **second line of defense**). On real lookalike domains (`quellcloud.com` vs `quellcl0ud.com`), the **first line of defense** (`rpId` mismatch) fails silently inside the browser before any packet reaches the server.
+- **Downgrade Vector:** The password + TOTP form remains intentionally active and labeled so you can observe how an AiTM phishlet downgrades users if phishable fallbacks remain enabled.
 
 ---
 

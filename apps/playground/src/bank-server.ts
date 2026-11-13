@@ -3,7 +3,11 @@ import * as http from 'node:http';
 import {
   generateHmacSecret,
   generateRsaKeyPair,
+  issueWebAuthnChallenge,
   VerificationResult,
+  verifyWebAuthnAssertion,
+  WebAuthnStoredCredential,
+  WebAuthnVerificationResult,
 } from '@nullfilter/core';
 import { OriginLockShield } from '@nullfilter/server';
 import { renderVaultUi } from './ui-template';
@@ -30,7 +34,7 @@ export interface BankServerInstance {
 }
 
 export interface SocBroadcastEvent {
-  type: 'VERIFICATION_VERDICT' | 'POLYMORPHIC_ROTATION';
+  type: 'VERIFICATION_VERDICT' | 'POLYMORPHIC_ROTATION' | 'WEBAUTHN_EVENT';
   timestamp: string;
   shieldMode?: 'ON' | 'OFF';
   username?: string;
@@ -38,6 +42,8 @@ export interface SocBroadcastEvent {
   observedHttpOrigin?: string;
   nonce?: string;
   verdict?: VerificationResult;
+  webauthnVerdict?: WebAuthnVerificationResult;
+  webauthnAction?: 'REGISTER' | 'LOGIN';
 }
 
 function readRequestBody(req: http.IncomingMessage, maxBytes = 64 * 1024): Promise<string> {
@@ -104,6 +110,8 @@ export function startBankServer(port = 3000): Promise<BankServerInstance> {
 
   const sseClients = new Set<http.ServerResponse>();
   const recentEventsBuffer: SocBroadcastEvent[] = [];
+  const registeredCredentials = new Map<string, WebAuthnStoredCredential>();
+  const usedWebAuthnChallenges = new Set<string>();
 
   function broadcastSocEvent(event: SocBroadcastEvent): void {
     recentEventsBuffer.push(event);
@@ -342,6 +350,235 @@ export function startBankServer(port = 3000): Promise<BankServerInstance> {
         return;
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Internal error';
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'ERROR', message: msg }));
+        return;
+      }
+    }
+
+    // 5. WebAuthn Passkey Registration Options (Restricted to legitimate origin via OriginLockShield)
+    if (pathname === '/api/webauthn/register/options' && method === 'POST') {
+      try {
+        const clientIp = extractClientIp(req);
+        const userAgent = String(req.headers['user-agent'] ?? 'unknown');
+        const token =
+          (req.headers['x-originlock-token'] as string | undefined) ??
+          (req.headers['x-nullfilter-token'] as string | undefined);
+
+        const nextChallenge = shield.issueChallenge(clientIp, '/api/ping');
+        const originCheck = await shield.verifyRequest({
+          token,
+          clientIp,
+          userAgent,
+          silenceConsoleAlert: true,
+        });
+
+        if (!originCheck.allowed) {
+          res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              status: 'REGISTRATION_BLOCKED',
+              message: `Passkey registration is restricted to legitimate origin http://localhost:${port} (TOFU protection).`,
+              nextNonce: nextChallenge.nonce,
+              nextChallengeProof: nextChallenge.challengeProof,
+            })
+          );
+          return;
+        }
+
+        const ch = issueWebAuthnChallenge(hmacSecret, clientIp);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            challengeB64Url: ch.challengeB64Url,
+            rp: { name: 'QuellCloud Enterprise Vault', id: 'localhost' },
+            user: {
+              idB64Url: Buffer.from('user-htunay-quellcloud', 'utf8').toString('base64url'),
+              name: 'h.tunay@quellcloud.com',
+              displayName: 'Hüseyin Tunay Çelik',
+            },
+            pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+            nextNonce: nextChallenge.nonce,
+            nextChallengeProof: nextChallenge.challengeProof,
+          })
+        );
+        return;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'WebAuthn register options error';
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'ERROR', message: msg }));
+        return;
+      }
+    }
+
+    // 6. WebAuthn Passkey Registration Verification (SPKI DER via response.getPublicKey())
+    if (pathname === '/api/webauthn/register/verify' && method === 'POST') {
+      try {
+        const rawBody = await readRequestBody(req);
+        const body = JSON.parse(rawBody || '{}') as {
+          credentialId?: string;
+          publicKeySpkiB64Url?: string;
+        };
+
+        if (!body.credentialId || !body.publicKeySpkiB64Url) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              status: 'ERROR',
+              message: 'Missing credentialId or ES256 SPKI public key (fail-closed).',
+            })
+          );
+          return;
+        }
+
+        const spkiBuf = Buffer.from(body.publicKeySpkiB64Url, 'base64url');
+        const pubKeyObj = crypto.createPublicKey({ key: spkiBuf, format: 'der', type: 'spki' });
+        if (
+          pubKeyObj.asymmetricKeyType !== 'ec' ||
+          pubKeyObj.asymmetricKeyDetails?.namedCurve !== 'prime256v1'
+        ) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              status: 'ERROR',
+              message: 'Only ES256 (ECDSA P-256 / prime256v1) SPKI keys are accepted.',
+            })
+          );
+          return;
+        }
+
+        const publicKeySpkiPem = pubKeyObj.export({ type: 'spki', format: 'pem' }).toString();
+        registeredCredentials.set(body.credentialId, {
+          credentialId: body.credentialId,
+          publicKeySpkiPem,
+          signCount: 0,
+        });
+
+        broadcastSocEvent({
+          type: 'WEBAUTHN_EVENT',
+          timestamp: new Date().toISOString(),
+          webauthnAction: 'REGISTER',
+          observedHttpOrigin: `http://localhost:${port}`,
+          webauthnVerdict: {
+            allowed: true,
+            status: 'ALLOW_WEBAUTHN_ASSERTION',
+            reason: `Passkey ES256 SPKI registered on http://localhost:${port} (Credential ID: ${body.credentialId.slice(0, 16)}...)`,
+            verifiedOrigin: `http://localhost:${port}`,
+          },
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            status: 'REGISTERED',
+            credentialId: body.credentialId,
+            message: 'Passkey ES256 SPKI public key registered on :3000.',
+          })
+        );
+        return;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'WebAuthn register verify error';
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ status: 'ERROR', message: msg }));
+        return;
+      }
+    }
+
+    // 7. WebAuthn Passkey Login Assertion Options
+    if (pathname === '/api/webauthn/login/options' && method === 'POST') {
+      const clientIp = extractClientIp(req);
+      const ch = issueWebAuthnChallenge(hmacSecret, clientIp);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(
+        JSON.stringify({
+          challengeB64Url: ch.challengeB64Url,
+          rpId: 'localhost',
+          allowCredentials: Array.from(registeredCredentials.keys()),
+        })
+      );
+      return;
+    }
+
+    // 8. WebAuthn Passkey Login Assertion Verification
+    if (pathname === '/api/webauthn/login/verify' && method === 'POST') {
+      try {
+        const rawBody = await readRequestBody(req);
+        const body = JSON.parse(rawBody || '{}') as {
+          credentialId?: string;
+          authenticatorDataB64Url?: string;
+          clientDataJsonB64Url?: string;
+          signatureB64Url?: string;
+        };
+
+        const stored = body.credentialId
+          ? registeredCredentials.get(body.credentialId)
+          : undefined;
+        if (!stored) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              status: 'WEBAUTHN_BLOCKED',
+              message: 'Unknown credentialId. Register a Passkey on http://localhost:3000 first.',
+            })
+          );
+          return;
+        }
+
+        const verdict = verifyWebAuthnAssertion({
+          assertion: {
+            credentialId: body.credentialId ?? '',
+            authenticatorDataB64Url: body.authenticatorDataB64Url ?? '',
+            clientDataJsonB64Url: body.clientDataJsonB64Url ?? '',
+            signatureB64Url: body.signatureB64Url ?? '',
+          },
+          storedCredential: stored,
+          expectedRpId: 'localhost',
+          allowedOrigins: [`http://localhost:${port}`],
+          hmacSecret,
+          usedChallengesSet: usedWebAuthnChallenges,
+          requireUserVerification: true,
+        });
+
+        broadcastSocEvent({
+          type: 'WEBAUTHN_EVENT',
+          timestamp: new Date().toISOString(),
+          webauthnAction: 'LOGIN',
+          observedHttpOrigin: String(req.headers['origin'] ?? 'none'),
+          webauthnVerdict: verdict,
+        });
+
+        if (verdict.allowed) {
+          if (typeof verdict.newSignCount === 'number') {
+            stored.signCount = verdict.newSignCount;
+          }
+          const realSessionToken = `WEBAUTHN_SESSION_TOKEN_${crypto
+            .randomBytes(12)
+            .toString('hex')}`;
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Set-Cookie': `vault_session=${realSessionToken}; Path=/; HttpOnly; SameSite=Lax`,
+          });
+          res.end(
+            JSON.stringify({
+              status: 'WEBAUTHN_SUCCESS',
+              message: `Passkey ES256 assertion verified! Browser signed clientDataJSON.origin = '${verdict.verifiedOrigin}'.`,
+              verdict,
+            })
+          );
+          return;
+        }
+
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            status: 'WEBAUTHN_BLOCKED',
+            message: `Passkey login REJECTED by server (${verdict.status}): ${verdict.reason}`,
+            verdict,
+          })
+        );
+        return;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'WebAuthn verify error';
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ status: 'ERROR', message: msg }));
         return;
