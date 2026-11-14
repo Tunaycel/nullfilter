@@ -76,24 +76,25 @@
     <text x="624" y="332" fill="#fbbf24">ALLOW (Test 9 — architectural limit)</text>
   </g>
 
-  <!-- right: origin-attestation shield motif -->
-  <g transform="translate(980,190)">
-    <circle r="132" fill="none" stroke="#17313f" stroke-width="1.5"/>
-    <circle r="104" fill="none" stroke="#1b3a4a" stroke-width="1.5"/>
-    <circle r="74" fill="none" stroke="url(#ring)" stroke-width="2" stroke-opacity="0.8"/>
-    <circle r="132" fill="none" stroke="url(#ring)" stroke-width="3" stroke-dasharray="6 18" stroke-opacity="0.55"/>
+  <!-- right: origin-attestation emblem (centered, clean) -->
+  <g transform="translate(986,184)">
+    <!-- concentric guide rings -->
+    <circle r="110" fill="none" stroke="#163041" stroke-width="1.5"/>
+    <circle r="110" fill="none" stroke="url(#ring)" stroke-width="2" stroke-dasharray="1.5 13" stroke-opacity="0.55" stroke-linecap="round"/>
+    <circle r="82" fill="none" stroke="#1a3a4a" stroke-width="1.5"/>
     <!-- shield -->
-    <path d="M0 -58 L50 -38 V6 C50 40 28 58 0 72 C-28 58 -50 40 -50 6 V-38 Z" fill="#0c1a18" stroke="url(#ring)" stroke-width="2.5"/>
-    <!-- lock -->
-    <rect x="-20" y="-6" width="40" height="32" rx="6" fill="#0a1512" stroke="#34d399" stroke-width="2"/>
-    <path d="M-12 -6 V-16 a12 12 0 0 1 24 0 V-6" fill="none" stroke="#34d399" stroke-width="2.5"/>
-    <circle cy="8" r="4.5" fill="#34d399"/>
-    <rect x="-1.6" y="8" width="3.2" height="12" rx="1.5" fill="#34d399"/>
-    <text y="48" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10.5" fill="#6f8aa0">origin signed</text>
-    <!-- signed origin tag -->
-    <g font-family="ui-monospace, monospace" font-size="11">
-      <rect x="-96" y="-124" width="150" height="24" rx="6" fill="#0e1a16" stroke="#1f6f52"/>
-      <text x="-86" y="-108" fill="#9fe6cf">clientDataJSON.origin</text>
+    <path d="M0 -64 L50 -43 V2 C50 34 29 55 0 67 C-29 55 -50 34 -50 2 V-43 Z"
+          fill="#0b1a18" stroke="url(#ring)" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- lock, centered in shield -->
+    <g stroke="#34d399">
+      <path d="M-12.5 -7 V-18 a12.5 12.5 0 0 1 25 0 V-7" fill="none" stroke-width="2.5"/>
+      <rect x="-20" y="-7" width="40" height="33" rx="7" fill="#0a1512" stroke-width="2"/>
+      <circle cy="7" r="4.4" fill="#34d399" stroke="none"/>
+      <rect x="-1.7" y="7" width="3.4" height="11.5" rx="1.7" fill="#34d399" stroke="none"/>
     </g>
+    <!-- caption stack below, centered -->
+    <text y="96" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#9fe6cf">origin signed by browser / TPM</text>
+    <rect x="-84" y="110" width="168" height="24" rx="12" fill="#0e1a16" stroke="#1f6f52"/>
+    <text x="0" y="126" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#86e3c2">clientDataJSON.origin</text>
   </g>
 </svg>
