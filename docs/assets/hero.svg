@@ -1,100 +1,121 @@
-<svg width="1200" height="380" viewBox="0 0 1200 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NullFilter — AiTM Detection Telemetry, Canary Deception and Red-Team Research Framework">
+<svg width="1200" height="400" viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NullFilter — OriginLock zero-trust attestation framework">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0a0e16"/>
-      <stop offset="0.55" stop-color="#0c1220"/>
-      <stop offset="1" stop-color="#0a0f1a"/>
+      <stop offset="0" stop-color="#070b12"/>
+      <stop offset="0.5" stop-color="#0a1019"/>
+      <stop offset="1" stop-color="#080d16"/>
     </linearGradient>
-    <radialGradient id="glowG" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#10b981" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#10b981" stop-opacity="0"/>
+    <radialGradient id="glowA" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#14b8a6" stop-opacity="0.22"/><stop offset="1" stop-color="#14b8a6" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="glowC" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.30"/>
-      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    <radialGradient id="glowB" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#38bdf8" stop-opacity="0.18"/><stop offset="1" stop-color="#38bdf8" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#e6fff6"/>
-      <stop offset="0.5" stop-color="#34d399"/>
-      <stop offset="1" stop-color="#22d3ee"/>
+    <linearGradient id="teal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#38bdf8"/>
     </linearGradient>
-    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#34d399"/>
-      <stop offset="1" stop-color="#22d3ee"/>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#22d3ee"/>
     </linearGradient>
   </defs>
 
-  <rect width="1200" height="380" rx="16" fill="url(#bg)"/>
-  <!-- grid -->
-  <g stroke="#17202e" stroke-width="1">
-    <path d="M0 47.5H1200M0 95H1200M0 142.5H1200M0 190H1200M0 237.5H1200M0 285H1200M0 332.5H1200"/>
-    <path d="M60 0V380M160 0V380M260 0V380M360 0V380M460 0V380M560 0V380M660 0V380M760 0V380M860 0V380M960 0V380M1060 0V380M1160 0V380"/>
+  <!-- backdrop -->
+  <rect width="1200" height="400" rx="18" fill="url(#bg)"/>
+  <g stroke="#0f1824" stroke-width="1">
+    <path d="M0 50H1200M0 100H1200M0 150H1200M0 200H1200M0 250H1200M0 300H1200M0 350H1200"/>
+    <path d="M100 0V400M200 0V400M300 0V400M400 0V400M500 0V400M600 0V400M700 0V400M800 0V400M900 0V400M1000 0V400M1100 0V400"/>
   </g>
-  <ellipse cx="300" cy="150" rx="380" ry="260" fill="url(#glowG)"/>
-  <ellipse cx="980" cy="230" rx="320" ry="240" fill="url(#glowC)"/>
-  <rect x="1" y="1" width="1198" height="378" rx="16" fill="none" stroke="#1f2b3c" stroke-width="2"/>
+  <ellipse cx="250" cy="150" rx="420" ry="300" fill="url(#glowA)"/>
+  <ellipse cx="986" cy="210" rx="330" ry="260" fill="url(#glowB)"/>
+  <rect x="1" y="1" width="1198" height="398" rx="18" fill="none" stroke="#1f2b3c" stroke-width="2"/>
+  <rect x="11" y="11" width="1178" height="378" rx="12" fill="none" stroke="#111c29" stroke-width="1"/>
 
-  <!-- top status strip -->
-  <g font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="13">
-    <circle cx="48" cy="46" r="5" fill="#34d399"/>
-    <text x="62" y="51" fill="#8b9bb0">ORIGINLOCK ZERO-TRUST ATTESTATION</text>
-    <text x="1152" y="51" fill="#5f7187" text-anchor="end">node:crypto · zero-dependency · TypeScript 5.7</text>
+  <!-- top status row -->
+  <g font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="12.5">
+    <circle cx="58" cy="44" r="4.5" fill="#34d399"/>
+    <circle cx="58" cy="44" r="8" fill="none" stroke="#34d399" stroke-opacity="0.35"/>
+    <text x="74" y="48" fill="#8b9bb0" letter-spacing="1.5">ORIGINLOCK · ZERO-TRUST ATTESTATION</text>
+    <text x="1144" y="48" fill="#5f7187" text-anchor="end" letter-spacing="0.5">node:crypto · zero-dependency · TypeScript 5.7</text>
+  </g>
+
+  <!-- ░ LOGO LOCKUP ░ -->
+  <!-- logomark: hexagon token + null-filter glyph, center (104,140) -->
+  <g>
+    <path d="M81 100.2 L127 100.2 L150 140 L127 179.8 L81 179.8 L58 140 Z" fill="#0b1620" stroke="url(#mark)" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M81 100.2 L127 100.2 L150 140 L127 179.8 L81 179.8 L58 140 Z" fill="none" stroke="#0b1620" stroke-width="0.5"/>
+    <!-- segmented (filter) ring -->
+    <circle cx="104" cy="140" r="23" fill="none" stroke="url(#mark)" stroke-width="5" stroke-dasharray="15.5 8.6" stroke-linecap="butt"/>
+    <!-- null slash -->
+    <line x1="123" y1="121" x2="85" y2="159" stroke="#e9fff8" stroke-width="5" stroke-linecap="round"/>
+    <line x1="123" y1="121" x2="85" y2="159" stroke="url(#mark)" stroke-width="5" stroke-linecap="round" stroke-opacity="0.5"/>
   </g>
 
   <!-- wordmark -->
-  <text x="54" y="176" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="92" font-weight="800" letter-spacing="-2" fill="url(#word)">NullFilter</text>
-  <text x="58" y="214" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="17" fill="#9fb2c7">AiTM Reverse-Proxy Detection Telemetry · Canary Honeypot Deception · Red-Team Research</text>
+  <text x="176" y="156" font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="68" font-weight="800" letter-spacing="-1.5">
+    <tspan fill="#eef5fb">Null</tspan><tspan fill="url(#teal)">Filter</tspan>
+  </text>
+  <!-- tagline + accent rule -->
+  <text x="178" y="190" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="12.5" fill="#8296ac" letter-spacing="0.6">AiTM detection telemetry · canary deception · red-team research</text>
+  <line x1="178" y1="208" x2="760" y2="208" stroke="#17222f" stroke-width="1"/>
+  <line x1="178" y1="208" x2="226" y2="208" stroke="url(#teal)" stroke-width="2"/>
 
-  <!-- pillar chips -->
-  <g font-family="'Segoe UI', Helvetica, Arial, sans-serif" font-size="14" font-weight="600">
+  <!-- ░ PILLAR CELLS ░ (equal width 236, gap 18) -->
+  <g font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+    <!-- 01 -->
     <g>
-      <rect x="56" y="246" width="214" height="46" rx="10" fill="#0e1a16" stroke="#1f6f52"/>
-      <circle cx="78" cy="269" r="6" fill="#34d399"/>
-      <text x="94" y="265" fill="#eafff7">Detection &amp; Deception</text>
-      <text x="94" y="282" fill="#6f8aa0" font-size="11" font-weight="400">commodity phishlet layer</text>
+      <rect x="56" y="244" width="236" height="60" rx="11" fill="#0c1713" stroke="#1d5f45"/>
+      <circle cx="78" cy="268" r="5" fill="#34d399"/>
+      <text x="94" y="273" font-size="14.5" font-weight="700" fill="#eafff7">Detection &amp; Deception</text>
+      <text x="94" y="291" font-size="10.5" fill="#6f8aa0">commodity phishlet layer</text>
+      <text x="276" y="266" font-size="11" font-family="ui-monospace,monospace" fill="#2f6f57" text-anchor="end">01</text>
     </g>
+    <!-- 02 -->
     <g>
-      <rect x="286" y="246" width="214" height="46" rx="10" fill="#0e1622" stroke="#245b7a"/>
-      <circle cx="308" cy="269" r="6" fill="#22d3ee"/>
-      <text x="324" y="265" fill="#eafcff">WebAuthn Boundary</text>
-      <text x="324" y="282" fill="#6f8aa0" font-size="11" font-weight="400">FIDO2 origin binding</text>
+      <rect x="310" y="244" width="236" height="60" rx="11" fill="#0b1620" stroke="#1f526f"/>
+      <circle cx="332" cy="268" r="5" fill="#38bdf8"/>
+      <text x="348" y="273" font-size="14.5" font-weight="700" fill="#eafbff">WebAuthn Boundary</text>
+      <text x="348" y="291" font-size="10.5" fill="#6f8aa0">FIDO2 origin binding</text>
+      <text x="530" y="266" font-size="11" font-family="ui-monospace,monospace" fill="#2c6382" text-anchor="end">02</text>
     </g>
+    <!-- 03 -->
     <g>
-      <rect x="516" y="246" width="214" height="46" rx="10" fill="#1c1608" stroke="#7a5a1f"/>
-      <circle cx="538" cy="269" r="6" fill="#f59e0b"/>
-      <text x="554" y="265" fill="#fff6e6">Red-Team Self-PoC</text>
-      <text x="554" y="282" fill="#6f8aa0" font-size="11" font-weight="400">we break our own tool</text>
+      <rect x="564" y="244" width="236" height="60" rx="11" fill="#171206" stroke="#6e531d"/>
+      <circle cx="586" cy="268" r="5" fill="#f59e0b"/>
+      <text x="602" y="273" font-size="14.5" font-weight="700" fill="#fff7e9">Red-Team Self-PoC</text>
+      <text x="602" y="291" font-size="10.5" fill="#6f8aa0">we break our own tool</text>
+      <text x="784" y="266" font-size="11" font-family="ui-monospace,monospace" fill="#7a5f2a" text-anchor="end">03</text>
     </g>
   </g>
 
-  <!-- verdict ticker -->
-  <g font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="12.5">
-    <text x="58" y="332" fill="#34d399">ALLOW_WEBAUTHN_ASSERTION</text>
-    <text x="300" y="332" fill="#5f7187">·</text>
-    <text x="318" y="332" fill="#f87171">BLOCK_WEBAUTHN_ORIGIN_MISMATCH</text>
-    <text x="606" y="332" fill="#5f7187">·</text>
-    <text x="624" y="332" fill="#fbbf24">ALLOW (Test 9 — architectural limit)</text>
-  </g>
+  <!-- ░ ATTESTATION INSTRUMENT ░ center (986,196) -->
+  <g>
+    <circle cx="986" cy="196" r="114" fill="none" stroke="#15303f" stroke-width="1.5"/>
+    <circle cx="986" cy="196" r="108" fill="none" stroke="url(#teal)" stroke-width="1.5" stroke-dasharray="1.5 10" stroke-linecap="round" stroke-opacity="0.55"/>
+    <circle cx="986" cy="196" r="80" fill="none" stroke="#183545" stroke-width="1.5"/>
+    <!-- cardinal ticks -->
+    <g stroke="url(#teal)" stroke-width="2" stroke-linecap="round">
+      <line x1="986" y1="80" x2="986" y2="92"/>
+      <line x1="986" y1="312" x2="986" y2="300"/>
+      <line x1="870" y1="196" x2="882" y2="196"/>
+      <line x1="1102" y1="196" x2="1090" y2="196"/>
+    </g>
+    <!-- signal node on dotted ring (top-right ~ -45deg) -->
+    <circle cx="1062.4" cy="119.6" r="7" fill="none" stroke="#34d399" stroke-opacity="0.35"/>
+    <circle cx="1062.4" cy="119.6" r="3.4" fill="#34d399"/>
 
-  <!-- right: origin-attestation emblem (centered, clean) -->
-  <g transform="translate(986,184)">
-    <!-- concentric guide rings -->
-    <circle r="110" fill="none" stroke="#163041" stroke-width="1.5"/>
-    <circle r="110" fill="none" stroke="url(#ring)" stroke-width="2" stroke-dasharray="1.5 13" stroke-opacity="0.55" stroke-linecap="round"/>
-    <circle r="82" fill="none" stroke="#1a3a4a" stroke-width="1.5"/>
     <!-- shield -->
-    <path d="M0 -64 L50 -43 V2 C50 34 29 55 0 67 C-29 55 -50 34 -50 2 V-43 Z"
-          fill="#0b1a18" stroke="url(#ring)" stroke-width="2.5" stroke-linejoin="round"/>
-    <!-- lock, centered in shield -->
+    <path d="M986 132 L1036 153 V198 C1036 230 1015 251 986 263 C957 251 936 230 936 198 V153 Z"
+          fill="#0b1a18" stroke="url(#mark)" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- lock, centered at (986,196) -->
     <g stroke="#34d399">
-      <path d="M-12.5 -7 V-18 a12.5 12.5 0 0 1 25 0 V-7" fill="none" stroke-width="2.5"/>
-      <rect x="-20" y="-7" width="40" height="33" rx="7" fill="#0a1512" stroke-width="2"/>
-      <circle cy="7" r="4.4" fill="#34d399" stroke="none"/>
-      <rect x="-1.7" y="7" width="3.4" height="11.5" rx="1.7" fill="#34d399" stroke="none"/>
+      <path d="M973.5 189 V178 a12.5 12.5 0 0 1 25 0 V189" fill="none" stroke-width="2.5"/>
+      <rect x="966" y="189" width="40" height="33" rx="7" fill="#0a1512" stroke-width="2"/>
+      <circle cx="986" cy="203" r="4.4" fill="#34d399" stroke="none"/>
+      <rect x="984.3" y="203" width="3.4" height="11.5" rx="1.7" fill="#34d399" stroke="none"/>
     </g>
-    <!-- caption stack below, centered -->
-    <text y="96" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="13" font-weight="600" fill="#9fe6cf">origin signed by browser / TPM</text>
-    <rect x="-84" y="110" width="168" height="24" rx="12" fill="#0e1a16" stroke="#1f6f52"/>
-    <text x="0" y="126" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#86e3c2">clientDataJSON.origin</text>
+    <!-- caption stack -->
+    <text x="986" y="298" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="12.5" font-weight="600" fill="#9fe6cf">origin signed by browser / TPM</text>
+    <rect x="902" y="312" width="168" height="24" rx="12" fill="#0e1a16" stroke="#1f6f52"/>
+    <text x="986" y="328" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11.5" fill="#86e3c2">clientDataJSON.origin</text>
   </g>
 </svg>
