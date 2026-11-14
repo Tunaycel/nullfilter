@@ -1,73 +1,70 @@
-<svg width="1200" height="620" viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NullFilter isometric defense-in-depth architecture: telemetry, WebAuthn boundary, post-auth DPoP">
+<svg width="1200" height="620" viewBox="0 0 1200 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NullFilter defense-in-depth — three stacked layers">
   <defs>
-    <linearGradient id="abg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0a0e16"/><stop offset="1" stop-color="#0b1120"/>
-    </linearGradient>
-    <linearGradient id="amber-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a2a0c"/><stop offset="1" stop-color="#261c08"/></linearGradient>
-    <linearGradient id="cyan-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d3042"/><stop offset="1" stop-color="#0a2230"/></linearGradient>
-    <linearGradient id="green-top" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0e3a2b"/><stop offset="1" stop-color="#0a281e"/></linearGradient>
+    <linearGradient id="abg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070b12"/><stop offset="1" stop-color="#0a1019"/></linearGradient>
   </defs>
-  <rect width="1200" height="620" rx="16" fill="url(#abg)"/>
-  <rect x="1" y="1" width="1198" height="618" rx="16" fill="none" stroke="#1f2b3c" stroke-width="2"/>
-  <text x="40" y="52" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="24" font-weight="700" fill="#e6edf3">Defense-in-Depth — three orthogonal layers</text>
-  <text x="40" y="78" font-family="ui-monospace,monospace" font-size="13" fill="#7f93a8">an attacker must defeat each layer independently · only one of them is a cryptographic boundary</text>
+  <rect width="1200" height="620" rx="18" fill="url(#abg)"/>
+  <rect x="1" y="1" width="1198" height="618" rx="18" fill="none" stroke="#1f2b3c" stroke-width="2"/>
+  <rect x="11" y="11" width="1178" height="596" rx="12" fill="none" stroke="#111c29" stroke-width="1"/>
 
-  <!-- ISO stack. Each layer: top rhombus + left + right faces. cx ~ 430 -->
-  <!-- helper geometry: top face points around center -->
+  <text x="44" y="54" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="25" font-weight="800" fill="#eef5fb">Defense-in-Depth — three orthogonal layers</text>
+  <text x="44" y="80" font-family="ui-monospace,monospace" font-size="12.5" fill="#7f93a8" letter-spacing="0.4">an attacker must defeat each layer independently · only one of them is a cryptographic boundary</text>
 
-  <!-- Layer 3 (top, highest): Post-Auth DPoP (planned) -->
-  <g transform="translate(0,0)">
-    <!-- right face -->
-    <path d="M430 150 L700 230 L700 300 L430 220 Z" fill="#1a1407" stroke="#5a4414" stroke-width="1.5"/>
-    <!-- left face -->
-    <path d="M430 150 L160 230 L160 300 L430 220 Z" fill="#241c0a" stroke="#5a4414" stroke-width="1.5"/>
-    <!-- top -->
-    <path d="M430 80 L700 160 L430 240 L160 160 Z" fill="url(#amber-top)" stroke="#8a6a1e" stroke-width="2"/>
-    <text x="430" y="150" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="#fbbf24">Layer 3 · Post-Auth Session Binding</text>
-    <text x="430" y="172" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#caa85a">DPoP / DBSC / CAE — sender-constrained tokens</text>
-    <text x="430" y="206" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#8a7030">stolen cookie without the bound key → useless  ·  PLANNED (PR-D)</text>
+  <!-- ===== LAYER 3 · amber · Post-Auth (top) ===== front x=120 y=110 W=470 H=88 ; cap sx=48 sy=24 -->
+  <g>
+    <path d="M590 110 L638 86 L638 174 L590 198 Z" fill="#140f05" stroke="#5a4414" stroke-width="1.5"/>
+    <path d="M120 110 L168 86 L638 86 L590 110 Z" fill="#2a2008" stroke="#7a5a1f" stroke-width="1.5"/>
+    <rect x="120" y="110" width="470" height="88" rx="2" fill="#1c1608" stroke="#7a5a1f" stroke-width="1.5"/>
+    <circle cx="146" cy="138" r="5" fill="#f59e0b"/>
+    <text x="164" y="143" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="#fbbf24">Layer 3 · Post-Auth Session Binding</text>
+    <text x="146" y="167" font-family="ui-monospace,monospace" font-size="12" fill="#caa85a">DPoP / DBSC / CAE · sender-constrained tokens</text>
+    <text x="146" y="186" font-family="ui-monospace,monospace" font-size="11" fill="#8a7030">stolen cookie without the bound key → useless · PLANNED (PR-D)</text>
   </g>
 
-  <!-- Layer 2 (middle): WebAuthn boundary -->
-  <g transform="translate(0,150)">
-    <path d="M430 150 L700 230 L700 300 L430 220 Z" fill="#07222e" stroke="#1d5873" stroke-width="1.5"/>
-    <path d="M430 150 L160 230 L160 300 L430 220 Z" fill="#0a2c3a" stroke="#1d5873" stroke-width="1.5"/>
-    <path d="M430 80 L700 160 L430 240 L160 160 Z" fill="url(#cyan-top)" stroke="#2b7fa6" stroke-width="2"/>
-    <text x="430" y="150" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="18" font-weight="800" fill="#38bdf8">Layer 2 · WebAuthn / FIDO2 Boundary</text>
-    <text x="430" y="172" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#8fd4ee">ES256 assertion · clientDataJSON.origin signed by browser/TPM</text>
-    <text x="430" y="206" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#5fa7c9">THE cryptographic boundary — unforgeable without the private key (Test 10)</text>
+  <!-- ===== LAYER 2 · cyan · WebAuthn (middle, emphasized) ===== front y=270 -->
+  <g>
+    <path d="M590 270 L638 246 L638 334 L590 358 Z" fill="#071722" stroke="#1d5873" stroke-width="1.5"/>
+    <path d="M120 270 L168 246 L638 246 L590 270 Z" fill="#103042" stroke="#2b7fa6" stroke-width="1.5"/>
+    <rect x="120" y="270" width="470" height="88" rx="2" fill="#0b1f2b" stroke="#2b7fa6" stroke-width="2"/>
+    <circle cx="146" cy="298" r="5" fill="#38bdf8"/>
+    <text x="164" y="303" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="18" font-weight="800" fill="#38bdf8">Layer 2 · WebAuthn / FIDO2</text>
+    <text x="146" y="327" font-family="ui-monospace,monospace" font-size="12" fill="#8fd4ee">ES256 assertion · origin signed by browser / TPM</text>
+    <text x="146" y="346" font-family="ui-monospace,monospace" font-size="11" fill="#5fa7c9">THE cryptographic boundary — unforgeable without the private key (Test 10)</text>
+    <rect x="442" y="290" width="122" height="23" rx="11.5" fill="#0d2736" stroke="#2b7fa6"/>
+    <text x="503" y="306" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#8fd4ee">THE BOUNDARY</text>
   </g>
 
-  <!-- Layer 1 (bottom): Telemetry + Canary -->
-  <g transform="translate(0,300)">
-    <path d="M430 150 L700 230 L700 300 L430 220 Z" fill="#082219" stroke="#1d6f50" stroke-width="1.5"/>
-    <path d="M430 150 L160 230 L160 300 L430 220 Z" fill="#0a2c21" stroke="#1d6f50" stroke-width="1.5"/>
-    <path d="M430 80 L700 160 L430 240 L160 160 Z" fill="url(#green-top)" stroke="#2b9a6e" stroke-width="2"/>
-    <text x="430" y="150" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="#34d399">Layer 1 · Telemetry + Canary Deception</text>
-    <text x="430" y="172" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#86e3c2">RSA-OAEP envelope · polymorphic probe · poisoned HS256 canary</text>
-    <text x="430" y="206" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" fill="#5aa888">commodity-grade: detects &amp; unmasks phishlets — NOT a boundary (Test 9)</text>
+  <!-- ===== LAYER 1 · green · Telemetry (bottom) ===== front y=430 -->
+  <g>
+    <path d="M590 430 L638 406 L638 494 L590 518 Z" fill="#07160f" stroke="#1d6f50" stroke-width="1.5"/>
+    <path d="M120 430 L168 406 L638 406 L590 430 Z" fill="#0e3326" stroke="#2b9a6e" stroke-width="1.5"/>
+    <rect x="120" y="430" width="470" height="88" rx="2" fill="#0a2017" stroke="#1d6f50" stroke-width="1.5"/>
+    <circle cx="146" cy="458" r="5" fill="#34d399"/>
+    <text x="164" y="463" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="#34d399">Layer 1 · Telemetry + Canary Deception</text>
+    <text x="146" y="487" font-family="ui-monospace,monospace" font-size="12" fill="#86e3c2">RSA-OAEP envelope · polymorphic probe · poisoned canary</text>
+    <text x="146" y="506" font-family="ui-monospace,monospace" font-size="11" fill="#5aa888">commodity-grade: detects &amp; unmasks phishlets — NOT a boundary (Test 9)</text>
   </g>
 
-  <!-- right-side annotations -->
+  <!-- divider -->
+  <line x1="700" y1="110" x2="700" y2="518" stroke="#1a2535" stroke-width="1.5" stroke-dasharray="3 7"/>
+
+  <!-- right annotations aligned to block centers (L3~154, L2~314, L1~474) -->
   <g font-family="ui-monospace,monospace" font-size="12.5">
-    <!-- attacker column -->
-    <line x1="760" y1="110" x2="760" y2="560" stroke="#223247" stroke-width="1.5" stroke-dasharray="4 6"/>
-    <text x="782" y="150" fill="#f59e0b">▲ bypassable</text>
-    <text x="782" y="168" fill="#6f8aa0">wire data is enough</text>
+    <text x="740" y="146" fill="#f59e0b">▲ bypassable</text>
+    <text x="740" y="166" fill="#6f8aa0">wire data is enough</text>
 
-    <text x="782" y="300" fill="#38bdf8">■ hard stop</text>
-    <text x="782" y="318" fill="#6f8aa0">needs TPM private key</text>
+    <text x="740" y="306" fill="#38bdf8">■ hard stop</text>
+    <text x="740" y="326" fill="#6f8aa0">needs TPM private key</text>
 
-    <text x="782" y="452" fill="#34d399">◆ early warning</text>
-    <text x="782" y="470" fill="#6f8aa0">SOC sees the attack</text>
+    <text x="740" y="466" fill="#34d399">◆ early warning</text>
+    <text x="740" y="486" fill="#6f8aa0">SOC sees the attack</text>
   </g>
 
-  <!-- attacker arrow -->
-  <g font-family="'Segoe UI',Helvetica,Arial,sans-serif">
-    <text x="1012" y="300" font-size="14" font-weight="700" fill="#f87171">AiTM attacker</text>
-    <path d="M1150 320 L1150 150" fill="none" stroke="#7a2e2e" stroke-width="2" marker-end="url(#ah)"/>
+  <!-- attacker climb -->
+  <g>
     <defs><marker id="ah" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 Z" fill="#f87171"/></marker></defs>
-    <text x="1120" y="345" font-size="11" font-family="ui-monospace,monospace" fill="#a86b6b" text-anchor="middle">climbs the stack</text>
-    <text x="1120" y="362" font-size="11" font-family="ui-monospace,monospace" fill="#a86b6b" text-anchor="middle">stops at Layer 2</text>
+    <path d="M1120 480 L1120 170" fill="none" stroke="#7a2e2e" stroke-width="2" marker-end="url(#ah)"/>
+    <text x="1100" y="150" text-anchor="end" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="#f87171">AiTM attacker</text>
+    <text x="1104" y="505" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#a86b6b">climbs the stack</text>
+    <text x="1104" y="521" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10.5" fill="#a86b6b">stops at Layer 2</text>
   </g>
 </svg>
