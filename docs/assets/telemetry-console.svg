@@ -1,0 +1,55 @@
+<svg width="1200" height="600" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Live SOC telemetry console sample output">
+  <defs>
+    <linearGradient id="tbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#090d15"/><stop offset="1" stop-color="#0a1019"/></linearGradient>
+  </defs>
+  <rect width="1200" height="600" rx="16" fill="url(#tbg)"/>
+  <rect x="1" y="1" width="1198" height="598" rx="16" fill="none" stroke="#1f2b3c" stroke-width="2"/>
+
+  <!-- window chrome -->
+  <circle cx="34" cy="34" r="7" fill="#f87171"/><circle cx="58" cy="34" r="7" fill="#fbbf24"/><circle cx="82" cy="34" r="7" fill="#34d399"/>
+  <text x="110" y="39" font-family="ui-monospace,monospace" font-size="14" fill="#9fb2c7">Live SOC &amp; Zero-Trust Telemetry Console — SSE stream</text>
+  <g font-family="ui-monospace,monospace" font-size="12"><circle cx="1012" cy="34" r="5" fill="#34d399"/><text x="1026" y="39" fill="#5f7187">connected · :3000/api/events</text></g>
+  <line x1="16" y1="58" x2="1184" y2="58" stroke="#1a2535" stroke-width="1.5"/>
+
+  <!-- counters -->
+  <g font-family="'Segoe UI',Helvetica,Arial,sans-serif">
+    <g><rect x="24" y="74" width="276" height="76" rx="10" fill="#0d1420" stroke="#1d6f50"/><text x="40" y="100" font-size="11" fill="#6f8aa0" letter-spacing="1">VERIFIED LOGINS</text><text x="40" y="138" font-size="30" font-weight="800" fill="#34d399">2</text></g>
+    <g><rect x="312" y="74" width="276" height="76" rx="10" fill="#1a0d0d" stroke="#7a2e2e"/><text x="328" y="100" font-size="11" fill="#6f8aa0" letter-spacing="1">AITM PROXY BLOCKS</text><text x="328" y="138" font-size="30" font-weight="800" fill="#f87171">2</text></g>
+    <g><rect x="600" y="74" width="276" height="76" rx="10" fill="#1c1608" stroke="#7a5a1f"/><text x="616" y="100" font-size="11" fill="#6f8aa0" letter-spacing="1">CANARIES INJECTED</text><text x="616" y="138" font-size="30" font-weight="800" fill="#fbbf24">1</text></g>
+    <g><rect x="888" y="74" width="288" height="76" rx="10" fill="#0e1622" stroke="#245b7a"/><text x="904" y="100" font-size="11" fill="#6f8aa0" letter-spacing="1">POLYMORPHIC MUTATIONS</text><text x="904" y="138" font-size="30" font-weight="800" fill="#38bdf8">5</text></g>
+  </g>
+
+  <!-- event rows -->
+  <g font-family="ui-monospace,monospace" font-size="12.5">
+    <!-- row: webauthn block -->
+    <rect x="24" y="170" width="1152" height="86" rx="10" fill="#140a0a" stroke="#7a2e2e" stroke-width="1.5"/>
+    <text x="44" y="194" font-size="12" fill="#f87171">🛑 WEBAUTHN BLOCK · BLOCK_WEBAUTHN_ORIGIN_MISMATCH</text>
+    <text x="1156" y="194" text-anchor="end" fill="#5f7187">22:03:56Z</text>
+    <text x="44" y="218" fill="#d7e2ee">clientDataJSON.origin '<tspan fill="#f87171">http://localhost:8080</tspan>' is not in exact allowedOrigins [http://localhost:3000].</text>
+    <text x="44" y="242" fill="#8fa3b8">Spoofed HTTP Origin: <tspan fill="#9fe6cf">http://localhost:3000</tspan>      Browser-Signed clientDataJSON.origin: <tspan fill="#f87171">http://localhost:8080</tspan></text>
+
+    <!-- row: webauthn allow -->
+    <rect x="24" y="266" width="1152" height="64" rx="10" fill="#0a1a14" stroke="#1d6f50" stroke-width="1.5"/>
+    <text x="44" y="290" font-size="12" fill="#34d399">🔓 WEBAUTHN LOGIN · ALLOW_WEBAUTHN_ASSERTION</text>
+    <text x="1156" y="290" text-anchor="end" fill="#5f7187">22:02:41Z</text>
+    <text x="44" y="314" fill="#d7e2ee">WebAuthn ES256 assertion verified for origin '<tspan fill="#9fe6cf">http://localhost:3000</tspan>' and rpId 'localhost'.</text>
+
+    <!-- row: shield off compromised -->
+    <rect x="24" y="340" width="1152" height="64" rx="10" fill="#160f06" stroke="#7a5a1f" stroke-width="1.5"/>
+    <text x="44" y="364" font-size="12" fill="#fbbf24">⚠ SHIELD OFF · STANDARD SERVER COMPROMISED</text>
+    <text x="1156" y="364" text-anchor="end" fill="#5f7187">21:52:28Z</text>
+    <text x="44" y="388" fill="#d7e2ee">Naive server trusted HTTP Origin header (:3000) and issued a <tspan fill="#f87171">REAL session cookie to the proxy</tspan>.</text>
+
+    <!-- row: aitm phishing detected -->
+    <rect x="24" y="414" width="1152" height="64" rx="10" fill="#140a0a" stroke="#7a2e2e" stroke-width="1.5"/>
+    <text x="44" y="438" font-size="12" fill="#f87171">🎯 AITM PHISHING DETECTED · BLOCK_EXPIRED_TOKEN</text>
+    <text x="1156" y="438" text-anchor="end" fill="#5f7187">21:08:15Z</text>
+    <text x="44" y="462" fill="#8fa3b8">Decrypted DOM Origin: <tspan fill="#f87171">http://localhost:8080 (CAUGHT)</tspan>   Measured RTT: 11 ms   Canvas HW: 0f2e7f1d…</text>
+
+    <!-- row: polymorphic -->
+    <rect x="24" y="488" width="1152" height="64" rx="10" fill="#0a1220" stroke="#245b7a" stroke-width="1.5"/>
+    <text x="44" y="512" font-size="12" fill="#38bdf8">⟳ POLYMORPHIC ENGINE · Per-Request AST &amp; XOR Mutation</text>
+    <text x="1156" y="512" text-anchor="end" fill="#5f7187">21:03:46Z</text>
+    <text x="44" y="536" fill="#8fa3b8">Generated unique probe closure &amp; HMAC-SHA256 challenge nonce: 1a1d6f02ab4.b1b57481a5b4d9…</text>
+  </g>
+</svg>

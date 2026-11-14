@@ -1,0 +1,65 @@
+<svg width="1200" height="560" viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Test 9 versus Test 10 cryptographic asymmetry">
+  <defs>
+    <linearGradient id="sbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0e16"/><stop offset="1" stop-color="#0b1120"/></linearGradient>
+    <linearGradient id="allowG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#fbbf24"/></linearGradient>
+    <linearGradient id="blockG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ef4444"/><stop offset="1" stop-color="#f87171"/></linearGradient>
+  </defs>
+  <rect width="1200" height="560" rx="16" fill="url(#sbg)"/>
+  <rect x="1" y="1" width="1198" height="558" rx="16" fill="none" stroke="#1f2b3c" stroke-width="2"/>
+
+  <text x="600" y="48" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="23" font-weight="700" fill="#e6edf3">The whole thesis in one asymmetry</text>
+  <text x="600" y="74" text-anchor="middle" font-family="ui-monospace,monospace" font-size="13" fill="#7f93a8">same attacker, same wire visibility — the only difference is whether a private key is required</text>
+
+  <!-- center divider -->
+  <line x1="600" y1="100" x2="600" y2="520" stroke="#223247" stroke-width="1.5"/>
+  <circle cx="600" cy="300" r="26" fill="#0c1220" stroke="#2b3a4e" stroke-width="2"/>
+  <text x="600" y="306" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="14" font-weight="700" fill="#8b9bb0">VS</text>
+
+  <!-- LEFT: Test 9 telemetry -->
+  <g font-family="ui-monospace,monospace">
+    <rect x="40" y="110" width="520" height="54" rx="10" fill="#1c1608" stroke="#7a5a1f" stroke-width="1.5"/>
+    <text x="64" y="138" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="#fbbf24">Test 9 · Telemetry token forgery</text>
+    <text x="64" y="156" font-size="11.5" fill="#caa85a">redteam-forgery.test.ts · forgeTokenFromWireScript()</text>
+
+    <text x="64" y="206" font-size="13" fill="#9fb2c7">Attacker needs:</text>
+    <g font-size="12.5" fill="#d7e2ee">
+      <rect x="64" y="220" width="472" height="30" rx="6" fill="#0e1622" stroke="#223247"/>
+      <text x="80" y="240">◦ server RSA public key  <tspan fill="#f59e0b">(travels on GET /)</tspan></text>
+      <rect x="64" y="258" width="472" height="30" rx="6" fill="#0e1622" stroke="#223247"/>
+      <text x="80" y="278">◦ XOR key + affine offset  <tspan fill="#f59e0b">(baked into wire script)</tspan></text>
+      <rect x="64" y="296" width="472" height="30" rx="6" fill="#0e1622" stroke="#223247"/>
+      <text x="80" y="316">◦ nonce + challengeProof  <tspan fill="#f59e0b">(all on the wire)</tspan></text>
+    </g>
+    <text x="64" y="360" font-size="12.5" fill="#8fa3b8">No victim browser. No private key. Just a parser.</text>
+
+    <!-- verdict -->
+    <rect x="64" y="384" width="472" height="96" rx="12" fill="#241a06" stroke="url(#allowG)" stroke-width="2.5"/>
+    <text x="300" y="424" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="30" font-weight="800" fill="#fbbf24">ALLOW</text>
+    <text x="300" y="452" text-anchor="middle" font-size="12" fill="#caa85a">spoofed origin accepted — architectural limit</text>
+    <text x="300" y="470" text-anchor="middle" font-size="11" fill="#8a7030">confidentiality ≠ origin authenticity</text>
+  </g>
+
+  <!-- RIGHT: Test 10 webauthn -->
+  <g font-family="ui-monospace,monospace">
+    <rect x="640" y="110" width="520" height="54" rx="10" fill="#0e1622" stroke="#245b7a" stroke-width="1.5"/>
+    <text x="664" y="138" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="16" font-weight="700" fill="#38bdf8">Test 10 · WebAuthn assertion forgery</text>
+    <text x="664" y="156" font-size="11.5" fill="#8fd4ee">webauthn-verifier.test.ts · verifyWebAuthnAssertion()</text>
+
+    <text x="664" y="206" font-size="13" fill="#9fb2c7">Attacker has everything on the wire:</text>
+    <g font-size="12.5" fill="#d7e2ee">
+      <rect x="664" y="220" width="472" height="30" rx="6" fill="#0e1622" stroke="#223247"/>
+      <text x="680" y="240">◦ challenge · rpId · allowedOrigins  <tspan fill="#34d399">✓ seen</tspan></text>
+      <rect x="664" y="258" width="472" height="30" rx="6" fill="#0e1622" stroke="#223247"/>
+      <text x="680" y="278">◦ credentialId · stored public key  <tspan fill="#34d399">✓ seen</tspan></text>
+      <rect x="664" y="296" width="472" height="30" rx="6" fill="#1a0c0c" stroke="#7a2e2e"/>
+      <text x="680" y="316">◦ user private key  <tspan fill="#f87171">✗ in TPM / Secure Enclave</tspan></text>
+    </g>
+    <text x="664" y="360" font-size="12.5" fill="#8fa3b8">Signs with their own key → signature fails.</text>
+
+    <!-- verdict -->
+    <rect x="664" y="384" width="472" height="96" rx="12" fill="#1a0808" stroke="url(#blockG)" stroke-width="2.5"/>
+    <text x="900" y="420" text-anchor="middle" font-family="'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="800" fill="#f87171">BLOCK</text>
+    <text x="900" y="446" text-anchor="middle" font-size="11.5" fill="#e4a0a0">BLOCK_WEBAUTHN_INVALID_SIGNATURE</text>
+    <text x="900" y="466" text-anchor="middle" font-size="11" fill="#a86b6b">private key is the one thing the wire never carries</text>
+  </g>
+</svg>
