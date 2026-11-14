@@ -43,11 +43,8 @@
   <g>
     <path d="M81 100.2 L127 100.2 L150 140 L127 179.8 L81 179.8 L58 140 Z" fill="#0b1620" stroke="url(#mark)" stroke-width="2.5" stroke-linejoin="round"/>
     <path d="M81 100.2 L127 100.2 L150 140 L127 179.8 L81 179.8 L58 140 Z" fill="none" stroke="#0b1620" stroke-width="0.5"/>
-    <!-- segmented (filter) ring -->
-    <circle cx="104" cy="140" r="23" fill="none" stroke="url(#mark)" stroke-width="5" stroke-dasharray="15.5 8.6" stroke-linecap="butt"/>
-    <!-- null slash -->
-    <line x1="123" y1="121" x2="85" y2="159" stroke="#e9fff8" stroke-width="5" stroke-linecap="round"/>
-    <line x1="123" y1="121" x2="85" y2="159" stroke="url(#mark)" stroke-width="5" stroke-linecap="round" stroke-opacity="0.5"/>
+    <!-- N monogram -->
+    <path d="M84 116 h9 v48 h-9 Z M115 116 h9 v48 h-9 Z M93 116 L104 116 L124 164 L113 164 Z" fill="url(#mark)"/>
   </g>
 
   <!-- wordmark -->
